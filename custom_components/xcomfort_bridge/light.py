@@ -1,14 +1,11 @@
 import asyncio
+from functools import cached_property
 import logging
 from math import ceil
 
 from xcomfort.devices import Light
 
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
-    SUPPORT_BRIGHTNESS,
-    LightEntity,
-)
+from homeassistant.components.light import ATTR_BRIGHTNESS, LightEntity, ColorMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
@@ -66,6 +63,7 @@ class HASSXComfortLight(LightEntity):
         # self.versionFW = comp["versionFW"]
 
         self._unique_id = f"light_{DOMAIN}_{hub.identifier}-{device.device_id}"
+        self._color_mode = ColorMode.BRIGHTNESS if self._device.dimmable else ColorMode.ONOFF
 
     async def async_added_to_hass(self):
         log(f"Added to hass {self._name} ")
@@ -124,11 +122,12 @@ class HASSXComfortLight(LightEntity):
         return self._state.switch
 
     @property
-    def supported_features(self):
-        """Flag supported features."""
-        if self._device.dimmable:
-            return SUPPORT_BRIGHTNESS
-        return 0
+    def color_mode(self) -> ColorMode:
+        return self._color_mode
+
+    @cached_property
+    def supported_color_modes(self) -> set[ColorMode] | set[str] | None:
+        return {self._color_mode}
 
     async def async_turn_on(self, **kwargs):
         log(f"async_turn_on {self._name} : {kwargs}")

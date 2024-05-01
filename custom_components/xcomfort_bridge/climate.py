@@ -7,20 +7,18 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.climate.const import (
-    CURRENT_HVAC_HEAT,
-    CURRENT_HVAC_IDLE,
-    HVAC_MODE_AUTO,
-    SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_PRESET_MODE,
+    ClimateEntityFeature,
+    HVACAction,
     PRESET_ECO,
     PRESET_COMFORT,
+    HVACMode,
 )
-from homeassistant.const import TEMP_CELSIUS
+from homeassistant.const import UnitOfTemperature
 
 from .hub import XComfortHub
 from .const import DOMAIN, VERBOSE
 
-SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
+SUPPORT_FLAGS = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,8 +53,8 @@ async def async_setup_entry(
 
 
 class HASSXComfortRcTouch(ClimateEntity):
-    _attr_temperature_unit = TEMP_CELSIUS
-    _attr_hvac_modes = [HVAC_MODE_AUTO]
+    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_hvac_modes = [HVACMode.AUTO]
     _attr_supported_features = SUPPORT_FLAGS
 
     def __init__(self, hass: HomeAssistant, hub: XComfortHub, room: Room):
@@ -173,7 +171,7 @@ class HASSXComfortRcTouch(ClimateEntity):
 
     @property
     def hvac_mode(self):
-        return HVAC_MODE_AUTO
+        return HVACMode.AUTO
 
     @property
     def current_humidity(self):
@@ -183,9 +181,9 @@ class HASSXComfortRcTouch(ClimateEntity):
     @property
     def hvac_action(self):
         if self._state.power > 0:
-            return CURRENT_HVAC_HEAT
+            return HVACAction.HEATING
         else:
-            return CURRENT_HVAC_IDLE
+            return HVACAction.IDLE
 
     @property
     def max_temp(self):

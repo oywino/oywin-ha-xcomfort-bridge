@@ -18,11 +18,7 @@ from xcomfort.bridge import Room
 from xcomfort.devices import RcTouch
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    ENERGY_KILO_WATT_HOUR,
-    ENERGY_WATT_HOUR,
-    PERCENTAGE,
-)
+from homeassistant.const import PERCENTAGE, UnitOfEnergy
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -68,7 +64,7 @@ class XComfortPowerSensor(SensorEntity):
         self._attr_device_class = SensorEntityDescription(
             key="current_consumption",
             device_class=SensorDeviceClass.ENERGY,
-            native_unit_of_measurement=ENERGY_WATT_HOUR,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             state_class=SensorStateClass.MEASUREMENT,
             name="Current consumption",
         )
@@ -92,7 +88,7 @@ class XComfortPowerSensor(SensorEntity):
 
     @property
     def native_unit_of_measurement(self):
-        return ENERGY_WATT_HOUR
+        return UnitOfEnergy.WATT_HOUR
 
     @property
     def native_value(self):
@@ -107,7 +103,7 @@ class XComfortEnergySensor(RestoreSensor):
         self._attr_device_class = SensorEntityDescription(
             key="energy_used",
             device_class=SensorDeviceClass.ENERGY,
-            native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             state_class=SensorStateClass.TOTAL_INCREASING,
             name="Energy consumption",
         )
@@ -148,7 +144,7 @@ class XComfortEnergySensor(RestoreSensor):
 
     @property
     def native_unit_of_measurement(self):
-        return ENERGY_KILO_WATT_HOUR
+        return UnitOfEnergy.KILO_WATT_HOUR
 
     @property
     def native_value(self):

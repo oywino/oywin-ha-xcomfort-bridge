@@ -6,9 +6,9 @@ from xcomfort.devices import Shade
 
 from homeassistant.components.cover import (
     ATTR_POSITION,
-    CoverEntityFeature,
-    DEVICE_CLASS_SHADE,
+    CoverDeviceClass,
     CoverEntity,
+    CoverEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -67,7 +67,7 @@ class HASSXComfortShade(CoverEntity):
 
     @property
     def device_class(self):
-        return DEVICE_CLASS_SHADE
+        return CoverDeviceClass.SHADE
 
     async def async_added_to_hass(self):
         log(f"Added to hass {self._name} ")
