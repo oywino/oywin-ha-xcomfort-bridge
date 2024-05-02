@@ -75,7 +75,6 @@ class XComfortPowerSensor(SensorEntity):
         self._room.state.subscribe(lambda state: self._state_change(state))
 
     def _state_change(self, state):
-
         should_update = self._state is not None
 
         self._state = state
@@ -92,7 +91,7 @@ class XComfortPowerSensor(SensorEntity):
 
     @property
     def native_value(self):
-        return self._state.power
+        return self._state and self._state.power
 
 
 class XComfortEnergySensor(RestoreSensor):
@@ -123,7 +122,6 @@ class XComfortEnergySensor(RestoreSensor):
             self._consumption = cast(float, savedstate.native_value)
 
     def _state_change(self, state):
-
         should_update = self._state is not None
         self._state = state
         if should_update:
@@ -168,7 +166,6 @@ class XComfortHumiditySensor(SensorEntity):
         self._device.state.subscribe(lambda state: self._state_change(state))
 
     def _state_change(self, state):
-
         should_update = self._state is not None
 
         self._state = state
@@ -185,4 +182,4 @@ class XComfortHumiditySensor(SensorEntity):
 
     @property
     def native_value(self):
-        return self._state.humidity
+        return self._state and self._state.humidity

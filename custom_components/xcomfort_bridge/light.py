@@ -119,7 +119,7 @@ class HASSXComfortLight(LightEntity):
     @property
     def is_on(self):
         """Return true if light is on."""
-        return self._state.switch
+        return self._state and self._state.switch
 
     @property
     def color_mode(self) -> ColorMode:
