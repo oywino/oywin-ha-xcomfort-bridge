@@ -1,4 +1,5 @@
 """Config flow for Eaton xComfort Bridge."""
+
 import logging
 from typing import List, Optional
 
@@ -23,7 +24,6 @@ _LOGGER = logging.getLogger(__name__)
 
 @config_entries.HANDLERS.register(DOMAIN)
 class XComfortBridgeConfigFlow(config_entries.ConfigFlow):
-
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
@@ -31,7 +31,6 @@ class XComfortBridgeConfigFlow(config_entries.ConfigFlow):
         self.data = {}
 
     async def async_step_user(self, user_input=None):
-
         entries = self.hass.config_entries.async_entries(DOMAIN)
         if entries:
             return self.async_abort(reason="already_setup")
@@ -39,7 +38,6 @@ class XComfortBridgeConfigFlow(config_entries.ConfigFlow):
         errors = {}
 
         if user_input is not None:
-
             self.data[CONF_IP_ADDRESS] = user_input[CONF_IP_ADDRESS]
             self.data[CONF_AUTH_KEY] = user_input[CONF_AUTH_KEY]
             self.data[CONF_IDENTIFIER] = user_input.get(CONF_IDENTIFIER)
@@ -57,9 +55,7 @@ class XComfortBridgeConfigFlow(config_entries.ConfigFlow):
             vol.Optional(CONF_IDENTIFIER, default="XComfort Bridge"): str,
         }
 
-        return self.async_show_form(
-            step_id="user", data_schema=vol.Schema(data_schema), errors=errors
-        )
+        return self.async_show_form(step_id="user", data_schema=vol.Schema(data_schema), errors=errors)
 
     async def async_step_import(self, import_data: dict):
         return await self.async_step_user(import_data)

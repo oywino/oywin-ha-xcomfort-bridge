@@ -17,12 +17,16 @@ from .const import DOMAIN, VERBOSE
 _LOGGER = logging.getLogger(__name__)
 
 """Logging function."""
+
+
 def log(msg: str):
     if VERBOSE:
         _LOGGER.info(msg)
 
 
 """Wrapper class over bridge library to emulate hub."""
+
+
 class XComfortHub:
     def __init__(self, hass: HomeAssistant, identifier: str, ip: str, auth_key: str):
         """Initialize underlying bridge"""

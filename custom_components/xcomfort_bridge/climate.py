@@ -29,10 +29,7 @@ def log(msg: str):
         _LOGGER.info(msg)
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-) -> None:
-
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     hub = XComfortHub.get_hub(hass, entry)
 
     rooms = hub.rooms
@@ -116,9 +113,7 @@ class HASSXComfortRcTouch(ClimateEntity):
         # Also consider changing the `mode` object on RoomState class to be just a number,
         # at current it is an object(possibly due to erroneous parsing of the 300/310-messages)
         setpoint = kwargs["temperature"]
-        setpointrange = self._room.bridge.rctsetpointallowedvalues[
-            RctMode(self.rctpreset)
-        ]
+        setpointrange = self._room.bridge.rctsetpointallowedvalues[RctMode(self.rctpreset)]
 
         if setpointrange.Max < setpoint:
             setpoint = setpointrange.Max

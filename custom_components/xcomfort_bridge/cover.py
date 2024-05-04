@@ -32,10 +32,7 @@ def log(msg: str):
 # })
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-) -> None:
-
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     hub = XComfortHub.get_hub(hass, entry)
 
     devices = hub.devices
@@ -128,7 +125,7 @@ class HASSXComfortShade(CoverEntity):
     async def async_open_cover(self, **kwargs):
         """Open the cover."""
         await self._device.move_up()
-    
+
     async def async_close_cover(self, **kwargs):
         """Close cover."""
         await self._device.move_down()

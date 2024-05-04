@@ -1,15 +1,19 @@
 import logging
 
-from xcomfort.devices import DoorSensor, DoorWindowSensor, WindowSensor
-
-from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from xcomfort.devices import DoorSensor, DoorWindowSensor, WindowSensor
 
 from .hub import XComfortHub
 
 _LOGGER = logging.getLogger(__name__)
+
+x = 123
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:

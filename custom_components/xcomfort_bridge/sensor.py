@@ -1,4 +1,5 @@
 """Support for Xcomfort sensors."""
+
 from __future__ import annotations
 
 import time
@@ -27,9 +28,7 @@ from .hub import XComfortHub
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     hub = XComfortHub.get_hub(hass, entry)
 
     rooms = hub.rooms
@@ -95,7 +94,6 @@ class XComfortPowerSensor(SensorEntity):
 
 
 class XComfortEnergySensor(RestoreSensor):
-
     _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, room: Room):
@@ -128,9 +126,7 @@ class XComfortEnergySensor(RestoreSensor):
             self.async_write_ha_state()
 
     def calculate(self):
-        timediff = math.floor(
-            time.time() - self._updateTime
-        )  # number of seconds since last update
+        timediff = math.floor(time.time() - self._updateTime)  # number of seconds since last update
         self._consumption += (
             self._state.power / 3600 / 1000 * timediff
         )  # Calculate, in kWh, energy consumption since last update.

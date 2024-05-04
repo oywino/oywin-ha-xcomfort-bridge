@@ -1,9 +1,10 @@
 """Support for XComfort Bridge."""
+
 import asyncio
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_IP_ADDRESS,Platform
+from homeassistant.const import CONF_IP_ADDRESS, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 
@@ -16,7 +17,7 @@ PLATFORMS = [
     Platform.COVER,
     Platform.LIGHT,
     Platform.SENSOR,
-    Platform.SWITCH
+    Platform.SWITCH,
 ]
 
 
@@ -42,7 +43,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hub.load_devices()
 
-    await hass.config_entries.async_forward_entry_setups (entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
 
@@ -54,10 +55,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     unload_ok = all(
         await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(entry, platform)
-                for platform in PLATFORMS
-            ]
+            *[hass.config_entries.async_forward_entry_unload(entry, platform) for platform in PLATFORMS]
         )
     )
     if unload_ok:
