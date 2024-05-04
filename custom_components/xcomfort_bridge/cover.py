@@ -26,12 +26,6 @@ def log(msg: str):
         _LOGGER.info(msg)
 
 
-# PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-# 	vol.Required(CONF_IP_ADDRESS): cv.string,
-# 	vol.Required(CONF_AUTH_KEY): cv.string,
-# })
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     hub = XComfortHub.get_hub(hass, entry)
 

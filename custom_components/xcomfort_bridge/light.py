@@ -22,12 +22,6 @@ def log(msg: str):
         _LOGGER.info(msg)
 
 
-# PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-# 	vol.Required(CONF_IP_ADDRESS): cv.string,
-# 	vol.Required(CONF_AUTH_KEY): cv.string,
-# })
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     hub = XComfortHub.get_hub(hass, entry)
 
@@ -55,10 +49,6 @@ class HASSXComfortLight(LightEntity):
         self._name = device.name
         self._state = None
         self.device_id = device.device_id
-
-        # comp = hub.bridge.getComp(self._device._device["compId"])
-        # self.versionFW = comp["versionFW"]
-
         self._unique_id = f"light_{DOMAIN}_{hub.identifier}-{device.device_id}"
         self._color_mode = ColorMode.BRIGHTNESS if self._device.dimmable else ColorMode.ONOFF
 
@@ -137,7 +127,6 @@ class HASSXComfortLight(LightEntity):
             return
 
         switch_task = self._device.switch(True)
-        # switch_task = self.hub.bridge.switch_device(self.device_id,True)
         await switch_task
 
         self._state.switch = True
@@ -146,7 +135,6 @@ class HASSXComfortLight(LightEntity):
     async def async_turn_off(self, **kwargs):
         log(f"async_turn_off {self._name} : {kwargs}")
         switch_task = self._device.switch(False)
-        # switch_task = self.hub.bridge.switch_device(self.device_id,True)
         await switch_task
 
         self._state.switch = False
