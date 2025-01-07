@@ -9,6 +9,13 @@
           "auth_key": "AuthKey",
 		  "identifier": "Identifier"
         }
+      },
+      "auth": {
+        "title": "Eaton xComfort Bridge",
+        "data": {
+          "auth_key": "AuthKey",
+		  "identifier": "Identifier"
+        }
       }
     },
     "abort": {

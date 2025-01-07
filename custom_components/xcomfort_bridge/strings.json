@@ -8,6 +8,12 @@
           "auth_key": "AuthKey",
           "identifier": "Identifier"
         }
+      },
+      "auth": {
+        "data": {
+            "auth_key": "AuthKey",
+            "identifier": "Identifier"
+        }
       }
     },
     "abort": {

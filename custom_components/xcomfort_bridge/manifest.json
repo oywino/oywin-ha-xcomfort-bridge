@@ -3,6 +3,7 @@
   "name": "Eaton xComfort Bridge",
   "version": "0.1.2",
   "config_flow": true,
+  "integration_type": "hub",
   "documentation": "https://github.com/jankrib/ha-xcomfort-bridge",
   "issue_tracker": "https://github.com/jankrib/ha-xcomfort-bridge/issues",
   "requirements": [
@@ -14,7 +15,13 @@
   "zeroconf": [],
   "homekit": {},
   "dependencies": [],
-  "codeowners": [
-    "@jankrib"
+  "codeowners": ["@jankrib"],
+  "dhcp": [
+    {
+      "registered_devices": true
+    },
+    {
+      "macaddress": "003055*"
+    }
   ]
 }
