@@ -31,35 +31,39 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     hub = XComfortHub.get_hub(hass, entry)
 
-    rooms = hub.rooms
-    devices = hub.devices
+    async def _wait_for_hub_then_setup():
+        await hub.has_done_initial_load.wait()
 
-    _LOGGER.info(f"Found {len(rooms)} xcomfort rooms")
-    _LOGGER.info(f"Found {len(devices)} xcomfort devices")
+        rooms = hub.rooms
+        devices = hub.devices
 
-    sensors = list()
-    for room in rooms:
-        if room.state.value is not None:
-            if room.state.value.power is not None:
-                _LOGGER.info(f"Adding power sensor for room {room.name}")
-                sensors.append(XComfortPowerSensor(room))
+        _LOGGER.info(f"Found {len(rooms)} xcomfort rooms")
+        _LOGGER.info(f"Found {len(devices)} xcomfort devices")
 
-            if room.state.value.temperature is not None:
-                _LOGGER.info(f"Adding temperature sensor for room {room.name}")
-                sensors.append(XComfortEnergySensor(room))
+        sensors = list()
+        for room in rooms:
+            if room.state.value is not None:
+                if room.state.value.power is not None:
+                    _LOGGER.info(f"Adding power sensor for room {room.name}")
+                    sensors.append(XComfortPowerSensor(hub, room))
 
-    for device in devices:
-        if isinstance(device, RcTouch):
-            _LOGGER.info(f"Adding humidity sensor for device {device}")
-            sensors.append(XComfortHumiditySensor(device))
+                if room.state.value.temperature is not None:
+                    _LOGGER.info(f"Adding temperature sensor for room {room.name}")
+                    sensors.append(XComfortEnergySensor(hub, room))
 
-    _LOGGER.info(f"Added {len(sensors)} rc touch units")
-    async_add_entities(sensors)
-    return
+        for device in devices:
+            if isinstance(device, RcTouch):
+                _LOGGER.info(f"Adding humidity sensor for device {device}")
+                sensors.append(XComfortHumiditySensor(hub, device))
+
+        _LOGGER.info(f"Added {len(sensors)} rc touch units")
+        async_add_entities(sensors)
+
+    entry.async_create_task(hass, _wait_for_hub_then_setup())
 
 
 class XComfortPowerSensor(SensorEntity):
-    def __init__(self, room: Room):
+    def __init__(self, hub: XComfortHub, room: Room):
         self._attr_device_class = SensorEntityDescription(
             key="current_consumption",
             device_class=SensorDeviceClass.ENERGY,
@@ -67,6 +71,7 @@ class XComfortPowerSensor(SensorEntity):
             state_class=SensorStateClass.MEASUREMENT,
             name="Current consumption",
         )
+        self.hub = hub
         self._room = room
         self._attr_name = self._room.name
         self._attr_unique_id = f"energy_{self._room.room_id}"
@@ -96,7 +101,7 @@ class XComfortPowerSensor(SensorEntity):
 class XComfortEnergySensor(RestoreSensor):
     _attr_state_class = SensorStateClass.TOTAL
 
-    def __init__(self, room: Room):
+    def __init__(self, hub: XComfortHub, room: Room):
         self._attr_device_class = SensorEntityDescription(
             key="energy_used",
             device_class=SensorDeviceClass.ENERGY,
@@ -104,6 +109,7 @@ class XComfortEnergySensor(RestoreSensor):
             state_class=SensorStateClass.TOTAL_INCREASING,
             name="Energy consumption",
         )
+        self.hub = hub
         self._room = room
         self._attr_name = self._room.name
         self._attr_unique_id = f"energy_kwh_{self._room.room_id}"
@@ -147,7 +153,7 @@ class XComfortEnergySensor(RestoreSensor):
 
 
 class XComfortHumiditySensor(SensorEntity):
-    def __init__(self, device: RcTouch):
+    def __init__(self, hub: XComfortHub, device: RcTouch):
         self._attr_device_class = SensorEntityDescription(
             key="humidity",
             device_class=SensorDeviceClass.HUMIDITY,
@@ -158,6 +164,8 @@ class XComfortHumiditySensor(SensorEntity):
         self._device = device
         self._attr_name = self._device.name
         self._attr_unique_id = f"humidity_{self._device.name}_{self._device.device_id}"
+
+        self.hub = hub
         self._state = None
         self._device.state.subscribe(lambda state: self._state_change(state))
 

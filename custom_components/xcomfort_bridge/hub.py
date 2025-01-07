@@ -31,22 +31,26 @@ class XComfortHub:
     def __init__(self, hass: HomeAssistant, identifier: str, ip: str, auth_key: str):
         """Initialize underlying bridge"""
         bridge = Bridge(ip, auth_key)
+        self.hass = hass
         self.bridge = bridge
         self.identifier = identifier
         if self.identifier is None:
             self.identifier = ip
         self._id = ip
         self.devices = list()
-        log("getting event loop")
         self._loop = asyncio.get_event_loop()
+
+        self.has_done_initial_load = asyncio.Event()
 
     def start(self):
         """Starts the event loop running the bridge."""
-        asyncio.create_task(self.bridge.run())
+        self.hass.async_create_task(self.bridge.run())
 
     async def stop(self):
         """Stops the bridge event loop.
-        Will also shut down websocket, if open."""
+        Will also shut down websocket, if open.
+        """
+        self.has_done_initial_load.clear()
         await self.bridge.close()
 
     async def load_devices(self):
@@ -63,6 +67,8 @@ class XComfortHub:
         self.rooms = rooms.values()
 
         log(f"loaded {len(self.rooms)} rooms")
+
+        self.has_done_initial_load.set()
 
     @property
     def hub_id(self) -> str:

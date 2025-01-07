@@ -38,10 +38,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     auth_key = str(config.get(CONF_AUTH_KEY))
 
     hub = XComfortHub(hass, identifier=identifier, ip=ip, auth_key=auth_key)
-    hub.start()
     hass.data[DOMAIN][entry.entry_id] = hub
 
-    await hub.load_devices()
+    entry.async_create_background_task(hass, hub.bridge.run(), f"XComfort/{identifier}")
+    entry.async_create_task(hass, hub.load_devices())
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

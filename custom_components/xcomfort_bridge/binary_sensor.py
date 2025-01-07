@@ -19,23 +19,29 @@ x = 123
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     hub = XComfortHub.get_hub(hass, entry)
 
-    devices = hub.devices
+    async def _wait_for_hub_then_setup():
+        await hub.has_done_initial_load.wait()
 
-    sensors = list()
+        devices = hub.devices
 
-    for device in devices:
-        if isinstance(device, DoorWindowSensor):
-            sensors.append(XComfortDoorWindowSensor(device))
+        sensors = list()
 
-    async_add_entities(sensors)
+        for device in devices:
+            if isinstance(device, DoorWindowSensor):
+                sensors.append(XComfortDoorWindowSensor(hub, device))
+
+        async_add_entities(sensors)
+
+    entry.async_create_task(hass, _wait_for_hub_then_setup())
 
 
 class XComfortDoorWindowSensor(BinarySensorEntity):
-    def __init__(self, device: WindowSensor | DoorSensor) -> None:
+    def __init__(self, hub: XComfortHub, device: WindowSensor | DoorSensor) -> None:
         """Initialize the unit binary sensor."""
         super().__init__()
         self._attr_name = device.name
-        self._attr_unique_id = f"xcomfort-{device.device_id}"
+
+        self.hub = hub
         self._device = device
         self._attr_state = device.is_open
 
