@@ -114,7 +114,7 @@ class XComfortEnergySensor(RestoreSensor):
         self._attr_unique_id = f"energy_kwh_{self._room.room_id}"
         self._state = None
         self._room.state.subscribe(lambda state: self._state_change(state))
-        self._updateTime = time.time()
+        self._updateTime = time.monotonic()
         self._consumption = 0
 
     async def async_added_to_hass(self) -> None:
@@ -131,11 +131,12 @@ class XComfortEnergySensor(RestoreSensor):
             self.async_write_ha_state()
 
     def calculate(self):
-        timediff = math.floor(time.time() - self._updateTime)  # number of seconds since last update
+        now = time.monotonic()
+        timediff = math.floor(now - self._updateTime)  # number of seconds since last update
         self._consumption += (
             self._state.power / 3600 / 1000 * timediff
         )  # Calculate, in kWh, energy consumption since last update.
-        self._updateTime = time.time()
+        self._updateTime = now
 
     @property
     def device_class(self):
