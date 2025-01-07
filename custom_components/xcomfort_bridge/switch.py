@@ -7,15 +7,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, VERBOSE
+from .const import DOMAIN
 from .hub import XComfortHub
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def log(msg: str):
-    if VERBOSE:
-        _LOGGER.info(msg)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -27,7 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         switches = list()
         for device in hub.devices:
             if isinstance(device, Rocker):
-                _LOGGER.info(f"Adding {device}")
+                _LOGGER.debug(f"Adding {device}")
                 switch = XComfortSwitch(hass, hub, device)
                 switches.append(switch)
 

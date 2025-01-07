@@ -44,7 +44,7 @@ class XComfortBridgeConfigFlow(config_entries.ConfigFlow):
         for entry in self._async_current_entries():
             if (configured_mac := entry.data.get(CONF_MAC)) is not None and format_mac(configured_mac) == mac:
                 if (old_ip := entry.data.get(CONF_IP_ADDRESS)) != ip:
-                    _LOGGER.warning(
+                    _LOGGER.info(
                         f"Bridge has changed IP-address. Configuring new IP and restarting. [mac={mac}, new_ip={ip}, old_ip={old_ip}]"
                     )
                     self.hass.config_entries.async_update_entry(

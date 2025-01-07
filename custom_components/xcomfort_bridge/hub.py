@@ -10,16 +10,9 @@ from xcomfort.bridge import Bridge
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, VERBOSE
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-
-"""Logging function."""
-
-
-def log(msg: str):
-    if VERBOSE:
-        _LOGGER.info(msg)
 
 
 """Wrapper class over bridge library to emulate hub."""
@@ -53,18 +46,15 @@ class XComfortHub:
 
     async def load_devices(self):
         """Loads devices from bridge."""
-        log("loading devices")
         devs = await self.bridge.get_devices()
         self.devices = devs.values()
 
-        log(f"loaded {len(self.devices)} devices")
-
-        log("loading rooms")
+        _LOGGER.info(f"loaded {len(self.devices)} devices")
 
         rooms = await self.bridge.get_rooms()
         self.rooms = rooms.values()
 
-        log(f"loaded {len(self.rooms)} rooms")
+        _LOGGER.info(f"loaded {len(self.rooms)} rooms")
 
         self.has_done_initial_load.set()
 

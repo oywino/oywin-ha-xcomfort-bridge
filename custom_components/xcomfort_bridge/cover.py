@@ -7,15 +7,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, VERBOSE
+from .const import DOMAIN
 from .hub import XComfortHub
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def log(msg: str):
-    if VERBOSE:
-        _LOGGER.info(msg)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -32,7 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 shade = HASSXComfortShade(hass, hub, device)
                 shades.append(shade)
 
-        _LOGGER.info(f"Added {len(shades)} shades")
+        _LOGGER.debug(f"Added {len(shades)} shades")
         async_add_entities(shades)
 
     entry.async_create_task(hass, _wait_for_hub_then_setup())
@@ -55,9 +50,9 @@ class HASSXComfortShade(CoverEntity):
         return CoverDeviceClass.SHADE
 
     async def async_added_to_hass(self):
-        log(f"Added to hass {self._name} ")
+        _LOGGER.debug(f"Added to hass {self._name} ")
         if self._device.state is None:
-            log(f"State is null for {self._name}")
+            _LOGGER.debug(f"State is null for {self._name}")
         else:
             self._device.state.subscribe(lambda state: self._state_change(state))
 
@@ -66,7 +61,7 @@ class HASSXComfortShade(CoverEntity):
 
         should_update = self._state is not None
 
-        log(f"State changed {self._name} : {state}")
+        _LOGGER.debug(f"State changed {self._name} : {state}")
 
         if should_update:
             self.schedule_update_ha_state()

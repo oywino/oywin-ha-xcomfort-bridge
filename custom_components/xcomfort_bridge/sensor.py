@@ -36,26 +36,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         rooms = hub.rooms
         devices = hub.devices
 
-        _LOGGER.info(f"Found {len(rooms)} xcomfort rooms")
-        _LOGGER.info(f"Found {len(devices)} xcomfort devices")
+        _LOGGER.debug(f"Found {len(rooms)} xcomfort rooms")
+        _LOGGER.debug(f"Found {len(devices)} xcomfort devices")
 
         sensors = list()
         for room in rooms:
             if room.state.value is not None:
                 if room.state.value.power is not None:
-                    _LOGGER.info(f"Adding power sensor for room {room.name}")
+                    _LOGGER.debug(f"Adding power sensor for room {room.name}")
                     sensors.append(XComfortPowerSensor(hub, room))
 
                 if room.state.value.temperature is not None:
-                    _LOGGER.info(f"Adding temperature sensor for room {room.name}")
+                    _LOGGER.debug(f"Adding temperature sensor for room {room.name}")
                     sensors.append(XComfortEnergySensor(hub, room))
 
         for device in devices:
             if isinstance(device, RcTouch):
-                _LOGGER.info(f"Adding humidity sensor for device {device}")
+                _LOGGER.debug(f"Adding humidity sensor for device {device}")
                 sensors.append(XComfortHumiditySensor(hub, device))
 
-        _LOGGER.info(f"Added {len(sensors)} rc touch units")
+        _LOGGER.debug(f"Added {len(sensors)} rc touch units")
         async_add_entities(sensors)
 
     entry.async_create_task(hass, _wait_for_hub_then_setup())
