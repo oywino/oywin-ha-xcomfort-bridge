@@ -4,10 +4,9 @@ from math import ceil
 
 from xcomfort.devices import Light
 
-from homeassistant.components.light import ATTR_BRIGHTNESS, LightEntity, ColorMode
+from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, VERBOSE

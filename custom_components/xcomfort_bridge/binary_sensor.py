@@ -1,13 +1,11 @@
 import logging
 
-from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
-    BinarySensorEntity,
-)
+from xcomfort.devices import DoorSensor, DoorWindowSensor, WindowSensor
+
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from xcomfort.devices import DoorSensor, DoorWindowSensor, WindowSensor
 
 from .hub import XComfortHub
 

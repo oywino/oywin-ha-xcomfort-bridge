@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from xcomfort.devices import Rocker
 
@@ -64,7 +63,7 @@ class XComfortSwitch(SwitchEntity):
             self.hass.bus.fire(self._unique_id, {"on": state})
 
     @property
-    def is_on(self) -> Optional[bool]:
+    def is_on(self) -> bool | None:
         return self._state
 
     @property
@@ -81,7 +80,7 @@ class XComfortSwitch(SwitchEntity):
         return False
 
     async def async_turn_on(self, **kwargs):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     async def async_turn_off(self, **kwargs):
-        raise NotImplementedError()
+        raise NotImplementedError

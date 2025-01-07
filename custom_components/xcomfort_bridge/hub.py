@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import List
 
-from xcomfort.bridge import Bridge, State
-from xcomfort.devices import Light, LightState
+from xcomfort.bridge import Bridge
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant

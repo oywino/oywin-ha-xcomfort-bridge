@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-import time
-import math
 import logging
+import math
+import time
 from typing import cast
+
+from xcomfort.bridge import Room
+from xcomfort.devices import RcTouch
 
 from homeassistant.components.sensor import (
     RestoreSensor,
@@ -14,10 +17,6 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-
-from xcomfort.bridge import Room
-from xcomfort.devices import RcTouch
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfEnergy
 from homeassistant.core import HomeAssistant
