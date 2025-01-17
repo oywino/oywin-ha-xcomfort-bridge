@@ -1,10 +1,14 @@
 """Support for Xcomfort sensors."""
+
 from __future__ import annotations
 
-import time
-import math
 import logging
+import math
+import time
 from typing import cast
+
+from xcomfort.bridge import Room
+from xcomfort.devices import RcTouch
 
 from homeassistant.components.sensor import (
     RestoreSensor,
@@ -13,16 +17,8 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-
-from xcomfort.bridge import Room
-from xcomfort.devices import RcTouch
-
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    ENERGY_KILO_WATT_HOUR,
-    ENERGY_WATT_HOUR,
-    PERCENTAGE,
-)
+from homeassistant.const import PERCENTAGE, UnitOfEnergy
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -31,47 +27,50 @@ from .hub import XComfortHub
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     hub = XComfortHub.get_hub(hass, entry)
 
-    rooms = hub.rooms
-    devices = hub.devices
+    async def _wait_for_hub_then_setup():
+        await hub.has_done_initial_load.wait()
 
-    _LOGGER.info(f"Found {len(rooms)} xcomfort rooms")
-    _LOGGER.info(f"Found {len(devices)} xcomfort devices")
+        rooms = hub.rooms
+        devices = hub.devices
 
-    sensors = list()
-    for room in rooms:
-        if room.state.value is not None:
-            if room.state.value.power is not None:
-                _LOGGER.info(f"Adding power sensor for room {room.name}")
-                sensors.append(XComfortPowerSensor(room))
+        _LOGGER.debug(f"Found {len(rooms)} xcomfort rooms")
+        _LOGGER.debug(f"Found {len(devices)} xcomfort devices")
 
-            if room.state.value.temperature is not None:
-                _LOGGER.info(f"Adding temperature sensor for room {room.name}")
-                sensors.append(XComfortEnergySensor(room))
+        sensors = list()
+        for room in rooms:
+            if room.state.value is not None:
+                if room.state.value.power is not None:
+                    _LOGGER.debug(f"Adding power sensor for room {room.name}")
+                    sensors.append(XComfortPowerSensor(hub, room))
 
-    for device in devices:
-        if isinstance(device, RcTouch):
-            _LOGGER.info(f"Adding humidity sensor for device {device}")
-            sensors.append(XComfortHumiditySensor(device))
+                if room.state.value.temperature is not None:
+                    _LOGGER.debug(f"Adding temperature sensor for room {room.name}")
+                    sensors.append(XComfortEnergySensor(hub, room))
 
-    _LOGGER.info(f"Added {len(sensors)} rc touch units")
-    async_add_entities(sensors)
-    return
+        for device in devices:
+            if isinstance(device, RcTouch):
+                _LOGGER.debug(f"Adding humidity sensor for device {device}")
+                sensors.append(XComfortHumiditySensor(hub, device))
+
+        _LOGGER.debug(f"Added {len(sensors)} rc touch units")
+        async_add_entities(sensors)
+
+    entry.async_create_task(hass, _wait_for_hub_then_setup())
 
 
 class XComfortPowerSensor(SensorEntity):
-    def __init__(self, room: Room):
+    def __init__(self, hub: XComfortHub, room: Room):
         self._attr_device_class = SensorEntityDescription(
             key="current_consumption",
             device_class=SensorDeviceClass.ENERGY,
-            native_unit_of_measurement=ENERGY_WATT_HOUR,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             state_class=SensorStateClass.MEASUREMENT,
             name="Current consumption",
         )
+        self.hub = hub
         self._room = room
         self._attr_name = self._room.name
         self._attr_unique_id = f"energy_{self._room.room_id}"
@@ -79,7 +78,6 @@ class XComfortPowerSensor(SensorEntity):
         self._room.state.subscribe(lambda state: self._state_change(state))
 
     def _state_change(self, state):
-
         should_update = self._state is not None
 
         self._state = state
@@ -92,31 +90,31 @@ class XComfortPowerSensor(SensorEntity):
 
     @property
     def native_unit_of_measurement(self):
-        return ENERGY_WATT_HOUR
+        return UnitOfEnergy.WATT_HOUR
 
     @property
     def native_value(self):
-        return self._state.power
+        return self._state and self._state.power
 
 
 class XComfortEnergySensor(RestoreSensor):
-
     _attr_state_class = SensorStateClass.TOTAL
 
-    def __init__(self, room: Room):
+    def __init__(self, hub: XComfortHub, room: Room):
         self._attr_device_class = SensorEntityDescription(
             key="energy_used",
             device_class=SensorDeviceClass.ENERGY,
-            native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             state_class=SensorStateClass.TOTAL_INCREASING,
             name="Energy consumption",
         )
+        self.hub = hub
         self._room = room
         self._attr_name = self._room.name
         self._attr_unique_id = f"energy_kwh_{self._room.room_id}"
         self._state = None
         self._room.state.subscribe(lambda state: self._state_change(state))
-        self._updateTime = time.time()
+        self._updateTime = time.monotonic()
         self._consumption = 0
 
     async def async_added_to_hass(self) -> None:
@@ -127,20 +125,18 @@ class XComfortEnergySensor(RestoreSensor):
             self._consumption = cast(float, savedstate.native_value)
 
     def _state_change(self, state):
-
         should_update = self._state is not None
         self._state = state
         if should_update:
             self.async_write_ha_state()
 
     def calculate(self):
-        timediff = math.floor(
-            time.time() - self._updateTime
-        )  # number of seconds since last update
+        now = time.monotonic()
+        timediff = math.floor(now - self._updateTime)  # number of seconds since last update
         self._consumption += (
             self._state.power / 3600 / 1000 * timediff
         )  # Calculate, in kWh, energy consumption since last update.
-        self._updateTime = time.time()
+        self._updateTime = now
 
     @property
     def device_class(self):
@@ -148,7 +144,7 @@ class XComfortEnergySensor(RestoreSensor):
 
     @property
     def native_unit_of_measurement(self):
-        return ENERGY_KILO_WATT_HOUR
+        return UnitOfEnergy.KILO_WATT_HOUR
 
     @property
     def native_value(self):
@@ -157,7 +153,7 @@ class XComfortEnergySensor(RestoreSensor):
 
 
 class XComfortHumiditySensor(SensorEntity):
-    def __init__(self, device: RcTouch):
+    def __init__(self, hub: XComfortHub, device: RcTouch):
         self._attr_device_class = SensorEntityDescription(
             key="humidity",
             device_class=SensorDeviceClass.HUMIDITY,
@@ -168,11 +164,12 @@ class XComfortHumiditySensor(SensorEntity):
         self._device = device
         self._attr_name = self._device.name
         self._attr_unique_id = f"humidity_{self._device.name}_{self._device.device_id}"
+
+        self.hub = hub
         self._state = None
         self._device.state.subscribe(lambda state: self._state_change(state))
 
     def _state_change(self, state):
-
         should_update = self._state is not None
 
         self._state = state
@@ -189,4 +186,4 @@ class XComfortHumiditySensor(SensorEntity):
 
     @property
     def native_value(self):
-        return self._state.humidity
+        return self._state and self._state.humidity
