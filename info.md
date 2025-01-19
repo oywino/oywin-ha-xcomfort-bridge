@@ -1,9 +1,6 @@
-Integration for Eaton xComfort bridge.
+# Configuration
 
-Configuration
--------------
-
-Configuration is done through the Home Assistant UI.
+Configuration for the Eaton xComfort bridge integration is done through the Home Assistant UI.
 
 To add the integration, go to `Configuration->Integrations`, click `+` and search for `xcomfort`
 
