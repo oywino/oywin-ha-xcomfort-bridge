@@ -5,5 +5,17 @@
   ],
   "pre-commit": {
     "enabled": true
-  }
+  },
+  "regexManagers": [
+    {
+      "fileMatch": ["manifest\\.json$"],
+      "matchStrings": [
+        "\"(?<package>[^@\\s\"]+)@(?<currentValue>[^#\\s\"]+)#[^\"]*\"",
+        "\"(?<package>[^@\\s\"]+)==(?<currentValue>[^\\s\",]+)\""
+      ],
+      "datasourceTemplate": "pypi",
+      "depNameTemplate": "{{{package}}}",
+      "versioningTemplate": "pep440"
+    }
+  ] 
 }
