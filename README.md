@@ -11,6 +11,8 @@ From HACS
 1. Add repository `javydekoning/ha-xcomfort-bridge`
 2. Set type to _Integration_
 3. Download the newly added integration.
+4. Restart Home Assistant
+5. Go to _Settings -> Devices & Services -> Add integration -> Eaton xComfort Bridge_
 
 ## Credits
 
