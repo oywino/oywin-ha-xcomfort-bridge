@@ -87,15 +87,3 @@ jobs:
           commit_message: "[MegaLinter] Apply linters fixes"
           commit_user_name: megalinter-bot
           commit_user_email: megalinter@javydekoning.com
-
-      # Check if SARIF file exists
-      - name: Check SARIF file
-        run: |
-          ls -l megalinter-reports/
-          cat megalinter-reports/megalinter-report.sarif
-      # Upload SARIF file
-      - name: Upload MegaLinter scan results to GitHub Security tab
-        if: ${{ success() }} || ${{ failure() }}
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: "megalinter-reports/megalinter-report.sarif"
