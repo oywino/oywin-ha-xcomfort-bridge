@@ -27,7 +27,6 @@ jobs:
       pull-requests: write
       actions: read
       security-events: write
-      workflows: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
