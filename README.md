@@ -39,3 +39,7 @@ Search for "Eaton" and you should find the integration listed:
 Enter the IP-address, authkey and an identifier for the integration.  Identifier is mandatory(not sure why the original developer put it in), but it is not used in the integration.  Authkey can be found on the bottom of your xComfort Bridge.
 
 ![Logs](doc/images/step4.png)
+
+## Credits
+
+This repo is a (detached) fork of [jankrib/ha-xcomfort-bridge](https://github.com/jankrib/ha-xcomfort-bridge). 
