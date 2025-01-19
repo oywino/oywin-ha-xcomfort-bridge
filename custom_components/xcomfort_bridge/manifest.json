@@ -1,11 +1,11 @@
 {
   "domain": "xcomfort_bridge",
   "name": "Eaton xComfort Bridge",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "config_flow": true,
   "integration_type": "hub",
-  "documentation": "https://github.com/jankrib/ha-xcomfort-bridge",
-  "issue_tracker": "https://github.com/jankrib/ha-xcomfort-bridge/issues",
+  "documentation": "https://github.com/javydekoning/ha-xcomfort-bridge",
+  "issue_tracker": "https://github.com/javydekoning/ha-xcomfort-bridge/issues",
   "requirements": [
     "git+https://github.com/alexbrasetvik/xcomfort-python.git@develop#xcomfort==0.2.0a1",
     "rx==3.2.0",
@@ -15,7 +15,12 @@
   "zeroconf": [],
   "homekit": {},
   "dependencies": [],
-  "codeowners": ["@jankrib"],
+  "codeowners": [
+    "@alexbrasetvik",
+    "@eliasdjup",
+    "@jankrib",
+    "@javydekoning"
+  ],
   "dhcp": [
     {
       "registered_devices": true
