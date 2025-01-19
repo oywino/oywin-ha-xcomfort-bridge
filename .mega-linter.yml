@@ -17,3 +17,5 @@ JSON_JSONLINT_ARGUMENTS: ["--comments"]
 JSON_PRETTIER_ARGUMENTS: ["--trailing-comma", "none"]
 
 MARKDOWN_MARKDOWN_LINK_CHECK_CONFIG_FILE: ".megalinter/.markdown-link-check.json"
+
+SARIF_REPORTER: true
