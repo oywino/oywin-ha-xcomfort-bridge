@@ -73,6 +73,12 @@ jobs:
           branch: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
           commit_message: "[MegaLinter] Apply linters fixes"
 
+      # Check if SARIF file exists
+      - name: Check SARIF file
+        run: |
+          ls -l megalinter-reports/
+          cat megalinter-reports/megalinter-report.sarif
+      # Upload SARIF file
       - name: Upload MegaLinter scan results to GitHub Security tab
         if: ${{ success() }} || ${{ failure() }}
         uses: github/codeql-action/upload-sarif@v3
