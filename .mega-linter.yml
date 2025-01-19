@@ -12,4 +12,6 @@ ENABLE_LINTERS:
 DISABLE_LINTERS:
   - YAML_V8R
 
+JSON_JSONLINT_ARGUMENTS: ["--comments"]
+
 JSON_PRETTIER_ARGUMENTS: ["--trailing-comma", "none"]
