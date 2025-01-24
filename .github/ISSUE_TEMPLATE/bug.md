@@ -1,5 +1,5 @@
 ---
-name: 🐛 bug
+name: 🐛 Bug
 about: Report an issue
 title: '[BUG]: '
 labels: "bug,needs-triage"
