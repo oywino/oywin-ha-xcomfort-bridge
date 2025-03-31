@@ -14,6 +14,9 @@ From HACS
 4. Restart Home Assistant
 5. Go to _Settings -> Devices & Services -> Add integration -> Eaton xComfort Bridge_
 
+## Documentation
+- [Smartstikk Switch Enhancements](docs/switch.md)
+
 ## Credits
 
-This repo is a (detached) fork of [jankrib/ha-xcomfort-bridge](https://github.com/jankrib/ha-xcomfort-bridge). 
+This repo is a (detached) fork of [javydekoning/ha-xcomfort-bridge](https://github.com/javydekoning/ha-xcomfort-bridge). 
