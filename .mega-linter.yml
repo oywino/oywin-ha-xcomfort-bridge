@@ -1,19 +1,11 @@
 ENABLE:
-#  - BASH
-#  - DOCKERFILE
-#  - EDITORCONFIG
-#  - JSON
-#  - MARKDOWN
+  - PYTHON
   - YAML
-  - PYTHON  # Added to enable Python files linting
-
-# Optional: Enable specific Python linting tools and additional checks
+PYTHON_PYDOCSTYLE: true  # Explicitly add this
 VALIDATE_PYTHON: true
-VALIDATE_PYTHON_FLAKE8: true       # For general style and potential docstring issues
-VALIDATE_PYTHON_PYLINT: true        # Additional checks that might catch documentation issues
-VALIDATE_PYTHON_DOCSTRINGS: true    # Specifically check for missing or malformed docstrings
-
-# Optionally, configure docstring style (example: enforce Google style)
+VALIDATE_PYTHON_PYLINT: true
+VALIDATE_PYTHON_FLAKE8: true
+VALIDATE_PYTHON_DOCSTRINGS: true
 ADDITIONAL_PYDOCSTYLE_ARGS: "--convention=google"
 
 DISABLE_LINTERS:
