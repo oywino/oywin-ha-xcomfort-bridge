@@ -1,5 +1,5 @@
 """Support for xComfort switches & Actuators."""
-#by oywin
+# by oywin
 import logging
 
 from xcomfort.devices import Rocker, LightState, Light, DeviceState
@@ -15,22 +15,22 @@ from .hub import XComfortHub
 
 _LOGGER = logging.getLogger(__name__)
 
-def test_no_docstring():
-    pass  # No docstring, should trigger C0116 or D103
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
     """Set up xComfort switch devices."""
     # Pass the config entry to the hub during initialization
     hub = XComfortHub.get_hub(hass, entry)
     hub.config_entry = entry  # Store the config entry in the hub object
 
     async def _wait_for_hub_then_setup():
+        """Wait for hub to complete initial load, then set up switch entities."""
         await hub.has_done_initial_load.wait()
 
         switches = []
         device_registry = dr.async_get(hass)
         for device in hub.devices:
-            _LOGGER.debug(f"Device type: {type(device).__name__}, ID: {device.device_id}, Name: {device.name}")
+            _LOGGER.debug("Device type: %s, ID: %s, Name: %s", type(device).__name__, device.device_id, device.name)
             if isinstance(device, Rocker):
                 _LOGGER.debug("Adding Rocker: %s", device)
                 switches.append(XComfortSwitch(hass, hub, device))
@@ -46,11 +46,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                     model="Smartstikk",
                     via_device=(DOMAIN, entry.entry_id),
                 )
-                _LOGGER.debug(f"Registered device for Smartstikk: {device.name} (ID: {device.device_id})")
+                _LOGGER.debug("Registered device for Smartstikk: %s (ID: %s)", device.name, device.device_id)
 
         async_add_entities(switches)
 
     entry.async_create_task(hass, _wait_for_hub_then_setup())
+
 
 class XComfortSwitch(SwitchEntity):
     """Entity class for xComfort switches."""
@@ -104,6 +105,7 @@ class XComfortSwitch(SwitchEntity):
         """Turn the switch off."""
         raise NotImplementedError
 
+
 class HASSXComfortAppliance(SwitchEntity):
     """Entity class for xComfort Smartstikk switches."""
 
@@ -119,49 +121,49 @@ class HASSXComfortAppliance(SwitchEntity):
 
     async def async_added_to_hass(self) -> None:
         """Run when entity is added to hass."""
-        _LOGGER.debug(f"Subscribing to state updates for {self._device.name}")
+        _LOGGER.debug("Subscribing to state updates for %s", self._device.name)
         self._device.state.subscribe(self._state_change)
         await self._fetch_initial_state()
 
     async def _fetch_initial_state(self) -> None:
         """Fetch initial state from the device."""
-        _LOGGER.debug(f"Fetching initial state for {self._device.name}")
+        _LOGGER.debug("Fetching initial state for %s", self._device.name)
         if hasattr(self._device, "state") and self._device.state.value is not None:
             self._state_change(self._device.state.value)
         else:
-            _LOGGER.debug(f"No initial state available for {self._device.name}")
+            _LOGGER.debug("No initial state available for %s", self._device.name)
 
     def _state_change(self, state) -> None:
         """Handle state changes from the device."""
-        _LOGGER.debug(f"Raw state update for {self._device.name}: {state}")
+        _LOGGER.debug("Raw state update for %s: %s", self._device.name, state)
         if isinstance(state, LightState):
             self._state = state.is_on
-            _LOGGER.debug(f"Processed LightState for {self._device.name}: {self._state}")
+            _LOGGER.debug("Processed LightState for %s: %s", self._device.name, self._state)
         elif isinstance(state, DeviceState):
             state_dict = state.raw
-            _LOGGER.debug(f"DeviceState raw dict for {self._device.name}: {state_dict}")
+            _LOGGER.debug("DeviceState raw dict for %s: %s", self._device.name, state_dict)
             if "switch" in state_dict:
                 self._state = state_dict["switch"]
-                _LOGGER.debug(f"Processed switch from DeviceState for {self._device.name}: {self._state}")
+                _LOGGER.debug("Processed switch from DeviceState for %s: %s", self._device.name, self._state)
             elif "info" in state_dict and self._state is None:
                 info_dict = {item["text"]: item["value"] for item in state_dict["info"] if "text" in item and "value" in item}
-                _LOGGER.debug(f"Info dict for {self._device.name}: {info_dict}")
+                _LOGGER.debug("Info dict for %s: %s", self._device.name, info_dict)
                 if "1109" in info_dict:
                     self._state = info_dict["1109"] == "31"
-                    _LOGGER.debug(f"Processed info state for {self._device.name}: {self._state}")
+                    _LOGGER.debug("Processed info state for %s: %s", self._device.name, self._state)
         elif isinstance(state, dict):
             if "switch" in state:
                 self._state = state["switch"]
-                _LOGGER.debug(f"Processed switch from dict for {self._device.name}: {self._state}")
+                _LOGGER.debug("Processed switch from dict for %s: %s", self._device.name, self._state)
             elif "info" in state and self._state is None:
                 info_dict = {item["text"]: item["value"] for item in state["info"] if "text" in item and "value" in item}
-                _LOGGER.debug(f"Info dict for {self._device.name}: {info_dict}")
+                _LOGGER.debug("Info dict for %s: %s", self._device.name, info_dict)
                 if "1109" in info_dict:
                     self._state = info_dict["1109"] == "31"
-                    _LOGGER.debug(f"Processed info state for {self._device.name}: {self._state}")
+                    _LOGGER.debug("Processed info state for %s: %s", self._device.name, self._state)
         else:
-            _LOGGER.debug(f"Unhandled state type for {self._device.name}: {type(state)}")
-        _LOGGER.debug(f"Final processed state for {self._device.name}: {self._state}")
+            _LOGGER.debug("Unhandled state type for %s: %s", self._device.name, type(state))
+        _LOGGER.debug("Final processed state for %s: %s", self._device.name, self._state)
         if self._state is not None:
             self.schedule_update_ha_state()
 
@@ -199,17 +201,17 @@ class HASSXComfortAppliance(SwitchEntity):
     async def async_turn_on(self, **kwargs) -> None:
         """Turn the switch on."""
         try:
-            _LOGGER.debug(f"Turning on {self._device.name} (device_id: {self.device_id})")
+            _LOGGER.debug("Turning on %s (device_id: %s)", self._device.name, self.device_id)
             await self.hub.bridge.switch_device(self.device_id, {"switch": True})
         except Exception as e:
-            _LOGGER.error(f"Failed to turn on {self._device.name}: {str(e)}")
+            _LOGGER.error("Failed to turn on %s: %s", self._device.name, str(e))
             raise
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the switch off."""
         try:
-            _LOGGER.debug(f"Turning off {self._device.name} (device_id: {self.device_id})")
+            _LOGGER.debug("Turning off %s (device_id: %s)", self._device.name, self.device_id)
             await self.hub.bridge.switch_device(self.device_id, {"switch": False})
         except Exception as e:
-            _LOGGER.error(f"Failed to turn off {self._device.name}: {str(e)}")
+            _LOGGER.error("Failed to turn off %s: %s", self._device.name, str(e))
             raise
