@@ -1,5 +1,5 @@
-"""Support for xComfort switches."""
-
+"""Support for xComfort switches & Actuators."""
+#by oywin
 import logging
 
 from xcomfort.devices import Rocker, LightState, Light, DeviceState
