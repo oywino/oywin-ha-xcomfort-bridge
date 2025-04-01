@@ -2,11 +2,11 @@
 # MegaLinter GitHub Action configuration file
 # More info at https://oxsecurity.github.io/megalinter
 name: MegaLinter
-
 on:
   push:
+    branches: [main, develop, megalinter, oywin-version]  # Add my branch
   pull_request:
-    branches: [main,develop,megalinter]
+    branches: [main, develop, megalinter, oywin-version]  # Add my branch
 
 env:
   APPLY_FIXES: all
