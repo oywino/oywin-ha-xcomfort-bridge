@@ -1,3 +1,4 @@
 [MASTER]
-#disable=    C0114,C0115,C0116 # missing-module-docstring
 disable=
+[MESSAGES CONTROL]
+enable=missing-module-docstring,missing-class-docstring,missing-function-docstring
