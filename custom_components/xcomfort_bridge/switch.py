@@ -15,6 +15,9 @@ from .hub import XComfortHub
 
 _LOGGER = logging.getLogger(__name__)
 
+def test_no_docstring():
+    pass  # No docstring, should trigger C0116 or D103
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up xComfort switch devices."""
     # Pass the config entry to the hub during initialization
