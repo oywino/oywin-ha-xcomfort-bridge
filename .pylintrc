@@ -1,5 +1,2 @@
 [MASTER]
-disable=
-[MESSAGES CONTROL]
-disable=all  # Disable everything by default
-enable=missing-module-docstring,missing-class-docstring,missing-function-docstring,line-too-long,import-error,unused-argument,logging-fstring-interpolation,too-many-instance-attributes,attribute-defined-outside-init,invalid-name,unnecessary-lambda,possibly-used-before-assignment,fixme,duplicate-code  # Re-enable what we care about
+disable=    C0114,C0115,C0116 # missing-module-docstring
