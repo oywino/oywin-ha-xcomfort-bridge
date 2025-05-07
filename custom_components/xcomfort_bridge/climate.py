@@ -22,9 +22,7 @@ from .hub import XComfortHub
 
 SUPPORT_FLAGS = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
 
-
 _LOGGER = logging.getLogger(__name__)
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the xComfort climate platform.
@@ -55,7 +53,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         async_add_entities(rcts)
 
     entry.async_create_task(hass, _wait_for_hub_then_setup())
-
 
 class HASSXComfortRcTouch(ClimateEntity):
     """Representation of an xComfort RC Touch climate device."""
@@ -88,7 +85,6 @@ class HASSXComfortRcTouch(ClimateEntity):
 
     async def async_added_to_hass(self):
         """Run when entity about to be added to hass."""
-
         _LOGGER.debug("Added to hass %s", self._name)
         if self._room.state is None:
             _LOGGER.debug("State is null for %s", self._name)
@@ -113,7 +109,6 @@ class HASSXComfortRcTouch(ClimateEntity):
             self.currentsetpoint = state.setpoint
 
             _LOGGER.debug("State changed %s : %s", self._name, state)
-
             self.schedule_update_ha_state()
 
     async def async_set_preset_mode(self, preset_mode):
@@ -154,7 +149,6 @@ class HASSXComfortRcTouch(ClimateEntity):
         setpointrange = self._room.bridge.rctsetpointallowedvalues[RctMode(self.rctpreset)]
 
         setpoint = min(setpointrange.Max, setpoint)
-
         setpoint = max(setpoint, setpointrange.Min)
 
         payload = {
@@ -167,9 +161,6 @@ class HASSXComfortRcTouch(ClimateEntity):
         await self._room.bridge.send_message(Messages.SET_HEATING_STATE, payload)
         self._room.modesetpoints[self.rctpreset] = setpoint
         self.currentsetpoint = setpoint
-        # After moving everything to base library, ideally line below should be the entry point
-        # into the library for setting target temperature.
-        # await self._room.set_target_temperature(kwargs["temperature"])
 
     @property
     def device_info(self):
@@ -179,7 +170,7 @@ class HASSXComfortRcTouch(ClimateEntity):
             "name": self._name,
             "manufacturer": "Eaton",
             "model": "RC Touch",
-            "via_device": self.hub.hub_id,
+            "via_device": self.hub.device_id,  # Changed from self.hub.hub_id
         }
 
     @property

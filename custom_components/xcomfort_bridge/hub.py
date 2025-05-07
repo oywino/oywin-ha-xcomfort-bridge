@@ -14,9 +14,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-
 """Wrapper class over bridge library to emulate hub."""
-
 
 class XComfortHub:
     """Hub wrapper for xComfort bridge communication."""
@@ -32,8 +30,8 @@ class XComfortHub:
         self._id = ip
         self.devices = []  # Changed from list()
         self._loop = asyncio.get_event_loop()
-
         self.has_done_initial_load = asyncio.Event()
+        self.device_id = None  # Initialize device_id to None
 
     def start(self):
         """Start the event loop running the bridge."""
