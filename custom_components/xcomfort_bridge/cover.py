@@ -22,7 +22,10 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the xComfort Bridge covers from a config entry."""
     hub = XComfortHub.get_hub(hass, entry)
+    
     if hub is not None:
+        await hub.has_done_initial_load.wait()
+        
         devices = hub.devices
 
         shades = []  # Changed from list()
