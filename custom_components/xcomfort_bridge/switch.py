@@ -2,7 +2,7 @@
 # by oywin
 import logging
 
-from xcomfort.devices import Rocker, LightState, Light, DeviceState
+from xcomfort.devices import LightState, Light, DeviceState
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -31,10 +31,7 @@ async def async_setup_entry(
         device_registry = dr.async_get(hass)
         for device in hub.devices:
             _LOGGER.debug("Device type: %s, ID: %s, Name: %s", type(device).__name__, device.device_id, device.name)
-            if isinstance(device, Rocker):
-                _LOGGER.debug("Adding Rocker: %s", device)
-                switches.append(XComfortSwitch(hass, hub, device))
-            elif "Smartstikk" in device.name and not isinstance(device, Light):
+            if "Smartstikk" in device.name and not isinstance(device, Light):
                 _LOGGER.debug("Adding Smartstikk (Appliance): %s", device)
                 appliance = HASSXComfortAppliance(hass, hub, device)
                 switches.append(appliance)
@@ -51,60 +48,6 @@ async def async_setup_entry(
         async_add_entities(switches)
 
     entry.async_create_task(hass, _wait_for_hub_then_setup())
-
-
-class XComfortSwitch(SwitchEntity):
-    """Entity class for xComfort switches."""
-
-    def __init__(self, hass: HomeAssistant, hub: XComfortHub, device: Rocker) -> None:
-        """Initialize the switch entity."""
-        self.hass = hass
-        self.hub = hub
-        self._attr_device_class = SwitchDeviceClass.SWITCH
-        self._device = device
-        self._state = None
-        self.device_id = device.device_id
-        self._unique_id = f"switch_{DOMAIN}_{device.device_id}"
-
-    async def async_added_to_hass(self) -> None:
-        """Run when entity about to be added to hass."""
-        self._device.state.subscribe(self._state_change)
-
-    def _state_change(self, state) -> None:
-        """Handle state changes from the device."""
-        self._state = state
-        if self._state is not None:
-            self.schedule_update_ha_state()
-            self.hass.bus.fire(self._unique_id, {"on": state})
-
-    @property
-    def is_on(self) -> bool | None:
-        """Return True if entity is on."""
-        return self._state
-
-    @property
-    def name(self) -> str:
-        """Return the display name of this switch."""
-        return self._device.name_with_controlled
-
-    @property
-    def unique_id(self) -> str:
-        """Return the unique ID."""
-        return self._unique_id
-
-    @property
-    def should_poll(self) -> bool:
-        """Return if the entity should be polled."""
-        return False
-
-    async def async_turn_on(self, **kwargs):
-        """Turn the switch on."""
-        raise NotImplementedError
-
-    async def async_turn_off(self, **kwargs):
-        """Turn the switch off."""
-        raise NotImplementedError
-
 
 class HASSXComfortAppliance(SwitchEntity):
     """Entity class for xComfort Smartstikk switches."""
@@ -195,7 +138,7 @@ class HASSXComfortAppliance(SwitchEntity):
             "name": self._device.name,
             "manufacturer": "Eaton",
             "model": "Smartstikk",
-            "via_device": (DOMAIN, self.hub.config_entry.entry_id),  # Now works since hub has config_entry
+            "via_device": (DOMAIN, self.hub.config_entry.entry_id),
         }
 
     async def async_turn_on(self, **kwargs) -> None:

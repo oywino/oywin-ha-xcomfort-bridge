@@ -8,7 +8,7 @@ import time
 from typing import cast
 
 from xcomfort.bridge import Room
-from xcomfort.devices import RcTouch
+from xcomfort.devices import RcTouch, Rocker
 
 from homeassistant.components.sensor import (
     RestoreSensor,
@@ -22,10 +22,10 @@ from homeassistant.const import PERCENTAGE, UnitOfEnergy
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .const import DOMAIN
 from .hub import XComfortHub
 
 _LOGGER = logging.getLogger(__name__)
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up xComfort sensor devices."""
@@ -55,12 +55,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             if isinstance(device, RcTouch):
                 _LOGGER.debug("Adding humidity sensor for device %s", device)
                 sensors.append(XComfortHumiditySensor(hub, device))
+            elif isinstance(device, Rocker):
+                _LOGGER.debug("Adding Rocker sensor: %s", device)
+                sensors.append(XComfortRockerSensor(hub, device))
 
-        _LOGGER.debug("Added %s rc touch units", len(sensors))
+        _LOGGER.debug("Added %s sensors", len(sensors))
         async_add_entities(sensors)
 
     entry.async_create_task(hass, _wait_for_hub_then_setup())
-
 
 class XComfortPowerSensor(SensorEntity):
     """Entity class for xComfort power sensors."""
@@ -109,7 +111,6 @@ class XComfortPowerSensor(SensorEntity):
     def native_value(self):
         """Return the current value."""
         return self._state and self._state.power
-
 
 class XComfortEnergySensor(RestoreSensor):
     """Entity class for xComfort energy sensors."""
@@ -178,7 +179,6 @@ class XComfortEnergySensor(RestoreSensor):
         self.calculate()
         return self._consumption
 
-
 class XComfortHumiditySensor(SensorEntity):
     """Entity class for xComfort humidity sensors."""
 
@@ -226,3 +226,67 @@ class XComfortHumiditySensor(SensorEntity):
     def native_value(self):
         """Return the current value."""
         return self._state and self._state.humidity
+
+class XComfortRockerSensor(SensorEntity):
+    """Entity class for xComfort Rocker sensors."""
+
+    def __init__(self, hub: XComfortHub, device: Rocker):
+        """Initialize the Rocker sensor entity.
+
+        Args:
+            hub: XComfortHub instance
+            device: Rocker device instance
+
+        """
+        self._hub = hub
+        self._device = device
+        self._attr_unique_id = f"rocker_{self._device.device_id}"
+        self._attr_name = self._device.name_with_controlled
+        self._state = None
+
+    async def async_added_to_hass(self) -> None:
+        """Subscribe to state changes when added to Home Assistant."""
+        self._device.state.subscribe(self._state_change)
+
+    def _state_change(self, state) -> None:
+        """Handle state changes from the Rocker device."""
+        _LOGGER.debug(f"Rocker {self._device.device_id} state changed to {state}")
+        self._state = "on" if state else "off"
+        self.schedule_update_ha_state()
+        _LOGGER.debug(f"Firing event {self._attr_unique_id} with data {{'on': {state}}}")
+        self.hass.bus.fire(self._attr_unique_id, {"on": state})
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the current state of the Rocker as a string."""
+        return self._state
+
+    @property
+    def device_info(self) -> dict:
+        """Return device information for the Rocker.
+
+        This property provides metadata about the device, such as its
+        identifiers, name, manufacturer, and model. It helps Home Assistant
+        associate the entity with the correct device in the device registry.
+
+        Returns:
+            A dictionary containing device information.
+        """
+        return {
+            "identifiers": {(DOMAIN, self._device.device_id)},
+            "name": self._device.name,
+            "manufacturer": "Eaton",
+            "model": "Rocker",
+        }
+
+    @property
+    def should_poll(self) -> bool:
+        """Disable polling since we use subscriptions.
+
+        This property indicates that the entity does not need to be polled
+        for updates because it receives state changes via subscriptions.
+
+        Returns:
+            False, indicating that polling is not required.
+        """
+        return False
