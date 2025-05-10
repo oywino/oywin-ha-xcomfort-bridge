@@ -55,7 +55,8 @@ class HASSXComfortShade(CoverEntity):
 
         self._device = device
         self._name = device.name
-        self._state = None
+        # Set initial state from device, if available
+        self._state = device.state.value if device.state is not None else None
         self.device_id = device.device_id
 
         self._unique_id = f"shade_{DOMAIN}_{hub.identifier}-{device.device_id}"
@@ -68,20 +69,16 @@ class HASSXComfortShade(CoverEntity):
     async def async_added_to_hass(self):
         """Run when entity about to be added to hass."""
         _LOGGER.debug("Added to hass %s", self._name)  # Changed from f-string
-        if self._device.state is None:
-            _LOGGER.debug("State is null for %s", self._name)  # Changed from f-string
-        else:
-            self._device.state.subscribe(lambda state: self._state_change(state))
+        # Listen for centralized xcomfort events
+        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
 
-    def _state_change(self, state):
-        """Handle state changes."""
-        self._state = state
-
-        should_update = self._state is not None
-
-        _LOGGER.debug("State changed %s : %s", self._name, state)  # Changed from f-string
-
-        if should_update:
+    def _handle_event(self, event):
+        """Handle centralized xcomfort_event and update state if relevant."""
+        event_data = event.data
+        if (event_data.get("device_id") == self.device_id and
+                event_data.get("device_type") == "Shade"):
+            self._state = event_data.get("new_state")
+            _LOGGER.debug("State updated via event %s : %s", self._name, self._state)
             self.schedule_update_ha_state()
 
     @property

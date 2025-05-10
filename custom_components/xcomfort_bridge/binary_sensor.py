@@ -8,7 +8,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, Event
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .hub import XComfortHub
@@ -16,7 +16,6 @@ from .hub import XComfortHub
 _LOGGER = logging.getLogger(__name__)
 
 x = 123
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up xComfort binary sensors from a config entry.
@@ -47,7 +46,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     entry.async_create_task(hass, _wait_for_hub_then_setup())
 
-
 class XComfortDoorWindowSensor(BinarySensorEntity):
     """Representation of an xComfort door/window binary sensor."""
 
@@ -64,7 +62,8 @@ class XComfortDoorWindowSensor(BinarySensorEntity):
 
         self.hub = hub
         self._device = device
-        self._attr_state = device.is_open
+        self._is_open = device.is_open if device.is_open is not None else False
+        self._expected_device_type = type(device).__name__
 
         if isinstance(device, WindowSensor):
             self._attr_device_class = BinarySensorDeviceClass.WINDOW
@@ -74,21 +73,26 @@ class XComfortDoorWindowSensor(BinarySensorEntity):
     async def async_added_to_hass(self):
         """Run when entity is added to Home Assistant.
 
-        Sets up state change subscription if device state exists.
+        Sets up event listener for xcomfort_event.
 
         """
-        if self._device.state is not None:
-            self._device.state.subscribe(lambda state: self._state_change(state))
+        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
 
-    def _state_change(self, state: bool):
-        """Handle state changes from the device.
+    def _handle_event(self, event: Event):
+        """Handle xcomfort_event and update state if relevant.
 
         Args:
-            state: New state value (True for open, False for closed)
+            event: The event data
 
         """
-        self._attr_state = state
-        self.schedule_update_ha_state()
+        if (event.data.get("device_id") == self._device.device_id and
+                event.data.get("device_type") == self._expected_device_type):
+            new_state = event.data.get("new_state")
+            if isinstance(new_state, bool):
+                self._is_open = new_state
+                self.schedule_update_ha_state()
+            else:
+                _LOGGER.warning(f"Received non-boolean state for {self._attr_name}: {new_state}")
 
     @property
     def is_on(self) -> bool | None:
@@ -99,4 +103,9 @@ class XComfortDoorWindowSensor(BinarySensorEntity):
             or None if state is unknown
 
         """
-        return self._device and self._device.is_open
+        return self._is_open
+
+    @property
+    def should_poll(self) -> bool:
+        """Return if the entity should be polled for state updates."""
+        return False
