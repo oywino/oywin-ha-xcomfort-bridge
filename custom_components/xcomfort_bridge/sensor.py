@@ -19,7 +19,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfEnergy
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, Event
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -48,7 +48,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                     sensors.append(XComfortPowerSensor(hub, room))
 
                 if room.state.value.temperature is not None:
-                    _LOGGER.debug("Adding temperature sensor for room %s", room.name)
+                    _LOGGER.debug("Adding energy sensor for room %s", room.name)
                     sensors.append(XComfortEnergySensor(hub, room))
 
         for device in devices:
@@ -86,15 +86,17 @@ class XComfortPowerSensor(SensorEntity):
         self._room = room
         self._attr_name = self._room.name
         self._attr_unique_id = f"energy_{self._room.room_id}"
-        self._state = None
-        self._room.state.subscribe(lambda state: self._state_change(state))
+        self._state = self._room.state.value  # Set initial state
 
-    def _state_change(self, state):
-        """Handle state changes from the device."""
-        should_update = self._state is not None
+    async def async_added_to_hass(self) -> None:
+        """Listen for xcomfort_event when added to Home Assistant."""
+        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
 
-        self._state = state
-        if should_update:
+    def _handle_event(self, event: Event):
+        """Handle xcomfort_event and update state if relevant."""
+        if (event.data.get("device_id") == self._room.room_id and
+            event.data.get("device_type") == "Room"):
+            self._state = event.data.get("new_state")
             self.async_write_ha_state()
 
     @property
@@ -136,32 +138,44 @@ class XComfortEnergySensor(RestoreSensor):
         self._room = room
         self._attr_name = self._room.name
         self._attr_unique_id = f"energy_kwh_{self._room.room_id}"
-        self._state = None
-        self._room.state.subscribe(lambda state: self._state_change(state))
+        self._state = self._room.state.value  # Set initial state
         self._updateTime = time.monotonic()
-        self._consumption = 0
+        self._consumption = 0.0  # Initialize as float
 
     async def async_added_to_hass(self) -> None:
         """Call when entity about to be added to hass."""
         await super().async_added_to_hass()
         savedstate = await self.async_get_last_sensor_data()
-        if savedstate:
-            self._consumption = cast(float, savedstate.native_value)
+        if savedstate and savedstate.native_value is not None:
+            try:
+                self._consumption = float(savedstate.native_value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid restored value for {self._attr_unique_id}, defaulting to 0.0")
+                self._consumption = 0.0
+        else:
+            self._consumption = 0.0  # Default to 0.0 if no valid state
+        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
 
-    def _state_change(self, state):
-        should_update = self._state is not None
-        self._state = state
-        if should_update:
+    def _handle_event(self, event: Event):
+        """Handle xcomfort_event and update state if relevant."""
+        if (event.data.get("device_id") == self._room.room_id and
+            event.data.get("device_type") == "Room"):
+            self._state = event.data.get("new_state")
             self.async_write_ha_state()
 
     def calculate(self):
         """Calculate energy consumption since last update."""
+        if self._state is None or not hasattr(self._state, 'power'):
+            _LOGGER.debug(f"Skipping calculation for {self._attr_unique_id}: state or power unavailable")
+            return
         now = time.monotonic()
         timediff = math.floor(now - self._updateTime)  # number of seconds since last update
-        self._consumption += (
-            self._state.power / 3600 / 1000 * timediff
-        )  # Calculate, in kWh, energy consumption since last update.
-        self._updateTime = now
+        power = self._state.power
+        if power is not None:
+            self._consumption += (power / 3600 / 1000 * timediff)  # Calculate in kWh
+            self._updateTime = now
+        else:
+            _LOGGER.debug(f"Power is None for {self._attr_unique_id}, skipping calculation")
 
     @property
     def device_class(self):
@@ -176,6 +190,8 @@ class XComfortEnergySensor(RestoreSensor):
     @property
     def native_value(self):
         """Return the current value."""
+        if self._state is None:
+            return None
         self.calculate()
         return self._consumption
 
@@ -200,16 +216,18 @@ class XComfortHumiditySensor(SensorEntity):
         self._device = device
         self._attr_name = self._device.name
         self._attr_unique_id = f"humidity_{self._device.name}_{self._device.device_id}"
-
         self.hub = hub
-        self._state = None
-        self._device.state.subscribe(lambda state: self._state_change(state))
+        self._state = self._device.state.value if self._device.state is not None else None  # Set initial state value
 
-    def _state_change(self, state):
-        should_update = self._state is not None
+    async def async_added_to_hass(self) -> None:
+        """Listen for xcomfort_event when added to Home Assistant."""
+        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
 
-        self._state = state
-        if should_update:
+    def _handle_event(self, event: Event):
+        """Handle xcomfort_event and update state if relevant."""
+        if (event.data.get("device_id") == self._device.device_id and
+            event.data.get("device_type") == "RcTouch"):
+            self._state = event.data.get("new_state")
             self.async_write_ha_state()
 
     @property
@@ -225,7 +243,17 @@ class XComfortHumiditySensor(SensorEntity):
     @property
     def native_value(self):
         """Return the current value."""
-        return self._state and self._state.humidity
+        if self._state is None:
+            return None
+        elif isinstance(self._state, dict):
+            return self._state.get("humidity")
+        elif hasattr(self._state, "humidity"):
+            return self._state.humidity
+        elif isinstance(self._state, (int, float)):
+            return self._state
+        else:
+            _LOGGER.error(f"Unexpected state type for {self._attr_unique_id}: {type(self._state)}")
+            return None
 
 class XComfortRockerSensor(SensorEntity):
     """Entity class for xComfort Rocker sensors."""
@@ -242,19 +270,20 @@ class XComfortRockerSensor(SensorEntity):
         self._device = device
         self._attr_unique_id = f"rocker_{self._device.device_id}"
         self._attr_name = self._device.name_with_controlled
-        self._state = None
+        initial_state = self._device.state
+        self._state = "on" if initial_state else "off" if initial_state is not None else None
 
     async def async_added_to_hass(self) -> None:
-        """Subscribe to state changes when added to Home Assistant."""
-        self._device.state.subscribe(self._state_change)
+        """Listen for xcomfort_event when added to Home Assistant."""
+        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
 
-    def _state_change(self, state) -> None:
-        """Handle state changes from the Rocker device."""
-        _LOGGER.debug(f"Rocker {self._device.device_id} state changed to {state}")
-        self._state = "on" if state else "off"
-        self.schedule_update_ha_state()
-        _LOGGER.debug(f"Firing event {self._attr_unique_id} with data {{'on': {state}}}")
-        self.hass.bus.fire(self._attr_unique_id, {"on": state})
+    def _handle_event(self, event: Event):
+        """Handle xcomfort_event and update state if relevant."""
+        if (event.data.get("device_id") == self._device.device_id and
+            event.data.get("device_type") == "Rocker"):
+            new_state = event.data.get("new_state")
+            self._state = "on" if new_state else "off" if new_state is not None else None
+            self.async_write_ha_state()
 
     @property
     def native_value(self) -> str | None:
@@ -263,15 +292,7 @@ class XComfortRockerSensor(SensorEntity):
 
     @property
     def device_info(self) -> dict:
-        """Return device information for the Rocker.
-
-        This property provides metadata about the device, such as its
-        identifiers, name, manufacturer, and model. It helps Home Assistant
-        associate the entity with the correct device in the device registry.
-
-        Returns:
-            A dictionary containing device information.
-        """
+        """Return device information for the Rocker."""
         return {
             "identifiers": {(DOMAIN, self._device.device_id)},
             "name": self._device.name,
@@ -281,12 +302,5 @@ class XComfortRockerSensor(SensorEntity):
 
     @property
     def should_poll(self) -> bool:
-        """Disable polling since we use subscriptions.
-
-        This property indicates that the entity does not need to be polled
-        for updates because it receives state changes via subscriptions.
-
-        Returns:
-            False, indicating that polling is not required.
-        """
+        """Disable polling since we use event listeners."""
         return False

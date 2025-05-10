@@ -8,14 +8,13 @@ from xcomfort.devices import Light
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, Event
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .hub import XComfortHub
 
 _LOGGER = logging.getLogger(__name__)
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up xComfort light devices."""
@@ -40,7 +39,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     entry.async_create_task(hass, _wait_for_hub_then_setup())
 
-
 class HASSXComfortLight(LightEntity):
     """Entity class for xComfort lights."""
 
@@ -58,7 +56,8 @@ class HASSXComfortLight(LightEntity):
 
         self._device = device
         self._name = device.name
-        self._state = None
+        # Set initial state from device, if available
+        self._state = device.state.value if device.state is not None else None
         self.device_id = device.device_id
         self._unique_id = f"light_{DOMAIN}_{hub.identifier}-{device.device_id}"
         self._color_mode = ColorMode.BRIGHTNESS if self._device.dimmable else ColorMode.ONOFF
@@ -66,21 +65,28 @@ class HASSXComfortLight(LightEntity):
     async def async_added_to_hass(self):
         """Run when entity about to be added to hass."""
         _LOGGER.debug("Added to hass %s", self._name)
-        if self._device.state is None:
-            _LOGGER.debug("State is null for %s", self._name)
-        else:
-            self._device.state.subscribe(lambda state: self._state_change(state))
+        # Listen for centralized xcomfort events
+        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
 
-    def _state_change(self, state):
-        """Handle state changes from the device."""
-        self._state = state
-
-        should_update = self._state is not None
-
-        _LOGGER.debug("State changed %s : %s", self._name, state)
-
-        if should_update:
+    def _handle_event(self, event: Event):
+        """Handle centralized xcomfort_event and update state if relevant."""
+        event_data = event.data
+        if (event_data.get("device_id") == self.device_id and
+                event_data.get("device_type") == "Light"):
+            self._state = event_data.get("new_state")
+            _LOGGER.debug("State updated via event %s : %s", self._name, self._state)
             self.schedule_update_ha_state()
+
+    def _get_state_value(self, key, default=None):
+        """Helper method to get state values from either a dictionary or object."""
+        if self._state is None:
+            return default
+        if isinstance(self._state, dict):
+            return self._state.get(key, default)
+        elif hasattr(self._state, key):
+            return getattr(self._state, key)
+        else:
+            return default
 
     @property
     def device_info(self):
@@ -111,17 +117,16 @@ class HASSXComfortLight(LightEntity):
 
     @property
     def brightness(self):
-        """Return the brightness of the light.
-
-        This method is optional. Removing it indicates to Home Assistant
-        that brightness is not supported for this light.
-        """
-        return int(255.0 * self._state.dimmvalue / 99.0)
+        """Return the brightness of this light between 0..255."""
+        if not self.is_on:
+            return None
+        dimmvalue = self._get_state_value("dimmvalue", 0)
+        return int(255.0 * dimmvalue / 99.0)
 
     @property
     def is_on(self):
         """Return true if light is on."""
-        return self._state and self._state.switch
+        return self._get_state_value("switch", False)
 
     @property
     def color_mode(self) -> ColorMode:
@@ -140,24 +145,16 @@ class HASSXComfortLight(LightEntity):
             br = ceil(kwargs[ATTR_BRIGHTNESS] * 99 / 255.0)
             _LOGGER.debug("async_turn_on br %s : %s", self._name, br)
             await self._device.dimm(br)
-            self._state.dimmvalue = br
-            self.schedule_update_ha_state()
-            return
-
-        switch_task = self._device.switch(True)
-        await switch_task
-
-        self._state.switch = True
+            # Update state immediately for responsiveness
+            self._state = {"switch": True, "dimmvalue": br}
+        else:
+            await self._device.switch(True)
+            self._state = {"switch": True}
         self.schedule_update_ha_state()
 
     async def async_turn_off(self, **kwargs):
         """Turn the light off."""
         _LOGGER.debug("async_turn_off %s : %s", self._name, kwargs)
-        switch_task = self._device.switch(False)
-        await switch_task
-
-        self._state.switch = False
+        await self._device.switch(False)
+        self._state = {"switch": False}
         self.schedule_update_ha_state()
-
-    def update(self):
-        """Update the entity."""
