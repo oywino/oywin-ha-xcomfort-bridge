@@ -18,7 +18,6 @@ from .hub import XComfortHub
 
 _LOGGER = logging.getLogger(__name__)
 
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the xComfort Bridge covers from a config entry."""
     hub = XComfortHub.get_hub(hass, entry)
@@ -36,7 +35,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
         _LOGGER.debug("Added %s shades", len(shades))  # Changed from f-string
         async_add_entities(shades)
-
 
 class HASSXComfortShade(CoverEntity):
     """Representation of an xComfort Bridge cover device."""
@@ -84,9 +82,11 @@ class HASSXComfortShade(CoverEntity):
     @property
     def is_closed(self) -> bool | None:
         """Return if the cover is closed or not."""
-        if not self._state:
+        position = self.current_cover_position
+        if position is None:
             return None
-        return self._state.is_closed
+        # In Home Assistant, position 0 means fully closed
+        return position == 0
 
     @property
     def device_info(self):
@@ -144,18 +144,21 @@ class HASSXComfortShade(CoverEntity):
 
         None is unknown, 0 is closed, 100 is fully open.
         """
-        if self._state:
-            if self._state.position is None:
-                return None  # Return None if position is NoneType
-            # xcomfort interprets 90% to be almost fully closed,
-            # while HASS UI makes 90% look almost open, so we
-            # invert.
-            return 100 - self._state.position
-        return None  # Return None if _state is falsy or does not exist
+        if self._state is None:
+            return None
+        # Handle both dictionary (from events) and object (from device.state.value)
+        if isinstance(self._state, dict):
+            position = self._state.get("shPos")
+        else:
+            position = getattr(self._state, "position", None)
+        if position is None:
+            return None
+        # Invert for Home Assistant: xComfort 0 is open, 100 is closed; HA 0 is closed, 100 is open
+        return 100 - position
 
     async def async_set_cover_position(self, **kwargs) -> None:
         """Move the cover to a specific position."""
         if (position := kwargs.get(ATTR_POSITION)) is not None:
-            # See above comment
-            position = 100 - position
-            await self._device.move_to_position(position)
+            # Invert for xComfort: HA 0 is closed (xComfort 100), HA 100 is open (xComfort 0)
+            xcomfort_position = 100 - position
+            await self._device.move_to_position(xcomfort_position)
