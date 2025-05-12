@@ -112,7 +112,13 @@ class XComfortPowerSensor(SensorEntity):
     @property
     def native_value(self):
         """Return the current value."""
-        return self._state and self._state.power
+        if self._state is None:
+            return None
+        if isinstance(self._state, dict):
+            return self._state.get("power")
+        elif hasattr(self._state, "power"):
+            return self._state.power
+        return None
 
 class XComfortEnergySensor(RestoreSensor):
     """Entity class for xComfort energy sensors."""
@@ -165,14 +171,20 @@ class XComfortEnergySensor(RestoreSensor):
 
     def calculate(self):
         """Calculate energy consumption since last update."""
-        if self._state is None or not hasattr(self._state, 'power'):
-            _LOGGER.debug(f"Skipping calculation for {self._attr_unique_id}: state or power unavailable")
+        if self._state is None:
+            _LOGGER.debug(f"Skipping calculation for {self._attr_unique_id}: state unavailable")
             return
-        now = time.monotonic()
-        timediff = math.floor(now - self._updateTime)  # number of seconds since last update
-        power = self._state.power
+        if isinstance(self._state, dict):
+            power = self._state.get("power")
+        elif hasattr(self._state, "power"):
+            power = self._state.power
+        else:
+            _LOGGER.debug(f"Skipping calculation for {self._attr_unique_id}: power unavailable")
+            return
         if power is not None:
-            self._consumption += (power / 3600 / 1000 * timediff)  # Calculate in kWh
+            now = time.monotonic()
+            timediff = math.floor(now - self._updateTime)
+            self._consumption += (power / 3600 / 1000 * timediff)
             self._updateTime = now
         else:
             _LOGGER.debug(f"Power is None for {self._attr_unique_id}, skipping calculation")
@@ -245,7 +257,7 @@ class XComfortHumiditySensor(SensorEntity):
         """Return the current value."""
         if self._state is None:
             return None
-        elif isinstance(self._state, dict):
+        if isinstance(self._state, dict):
             return self._state.get("humidity")
         elif hasattr(self._state, "humidity"):
             return self._state.humidity
