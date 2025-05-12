@@ -258,8 +258,14 @@ class XComfortHumiditySensor(SensorEntity):
         if self._state is None:
             return None
         if isinstance(self._state, dict):
-            return self._state.get("humidity")
+            # Look for humidity in the info list
+            info_list = self._state.get("info", [])
+            for item in info_list:
+                if item.get("text") == "1223":  # Replace "1223" with the actual humidity identifier
+                    return item.get("value")
+            return None  # No matching text found
         elif hasattr(self._state, "humidity"):
+            # Handle initial state with direct humidity attribute
             return self._state.humidity
         elif isinstance(self._state, (int, float)):
             return self._state
