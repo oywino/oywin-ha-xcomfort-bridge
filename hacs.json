@@ -1,7 +1,7 @@
 {
   "name": "xComfort Bridge",            // your display name
   "category": "integration",
-  "release_tag": "oywin-version"
+  "release_tag": true,
   "content_in_root": false,             // tells HACS to look under custom_components/
   "domains": ["xcomfort_bridge"],       // your integration folder name
   "homeassistant": "2025.1.0",          // (keep if needed)
