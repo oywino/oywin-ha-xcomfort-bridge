@@ -90,14 +90,14 @@ class XComfortPowerSensor(SensorEntity):
 
     async def async_added_to_hass(self) -> None:
         """Listen for xcomfort_event when added to Home Assistant."""
-        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
+        self.async_on_remove(self.hass.bus.async_listen("xcomfort_event", self._handle_event))
 
     def _handle_event(self, event: Event):
         """Handle xcomfort_event and update state if relevant."""
         if (event.data.get("device_id") == self._room.room_id and
             event.data.get("device_type") == "Room"):
             self._state = event.data.get("new_state")
-            self.async_write_ha_state()
+            self.schedule_update_ha_state()
 
     @property
     def device_class(self):
@@ -160,14 +160,14 @@ class XComfortEnergySensor(RestoreSensor):
                 self._consumption = 0.0
         else:
             self._consumption = 0.0  # Default to 0.0 if no valid state
-        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
+        self.async_on_remove(self.hass.bus.async_listen("xcomfort_event", self._handle_event))
 
     def _handle_event(self, event: Event):
         """Handle xcomfort_event and update state if relevant."""
         if (event.data.get("device_id") == self._room.room_id and
             event.data.get("device_type") == "Room"):
             self._state = event.data.get("new_state")
-            self.async_write_ha_state()
+            self.schedule_update_ha_state()
 
     def calculate(self):
         """Calculate energy consumption since last update."""
@@ -233,14 +233,14 @@ class XComfortHumiditySensor(SensorEntity):
 
     async def async_added_to_hass(self) -> None:
         """Listen for xcomfort_event when added to Home Assistant."""
-        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
+        self.async_on_remove(self.hass.bus.async_listen("xcomfort_event", self._handle_event))
 
     def _handle_event(self, event: Event):
         """Handle xcomfort_event and update state if relevant."""
         if (event.data.get("device_id") == self._device.device_id and
             event.data.get("device_type") == "RcTouch"):
             self._state = event.data.get("new_state")
-            self.async_write_ha_state()
+            self.schedule_update_ha_state()
 
     @property
     def device_class(self):
@@ -293,7 +293,7 @@ class XComfortRockerSensor(SensorEntity):
 
     async def async_added_to_hass(self) -> None:
         """Listen for xcomfort_event when added to Home Assistant."""
-        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
+        self.async_on_remove(self.hass.bus.async_listen("xcomfort_event", self._handle_event))
 
     def _handle_event(self, event: Event):
         """Handle xcomfort_event and update state if relevant."""
@@ -301,7 +301,7 @@ class XComfortRockerSensor(SensorEntity):
             event.data.get("device_type") == "Rocker"):
             new_state = event.data.get("new_state")
             self._state = "on" if new_state else "off" if new_state is not None else None
-            self.async_write_ha_state()
+            self.schedule_update_ha_state()
 
     @property
     def native_value(self) -> str | None:
