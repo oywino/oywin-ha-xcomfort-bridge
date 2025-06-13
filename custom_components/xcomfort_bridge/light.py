@@ -1,4 +1,8 @@
-"""Support for xComfort lights."""
+# v2
+"""Support for xComfort lights.
+
+Version: 2024.05.18.1
+"""
 
 from functools import cached_property
 import logging
@@ -8,7 +12,7 @@ from xcomfort.devices import Light
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, Event
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -43,14 +47,7 @@ class HASSXComfortLight(LightEntity):
     """Entity class for xComfort lights."""
 
     def __init__(self, hass: HomeAssistant, hub: XComfortHub, device: Light):
-        """Initialize the light entity.
-
-        Args:
-            hass: HomeAssistant instance
-            hub: XComfortHub instance
-            device: Light device instance
-
-        """
+        """Initialize the light entity."""
         self.hass = hass
         self.hub = hub
 
@@ -61,21 +58,23 @@ class HASSXComfortLight(LightEntity):
         self.device_id = device.device_id
         self._unique_id = f"light_{DOMAIN}_{hub.identifier}-{device.device_id}"
         self._color_mode = ColorMode.BRIGHTNESS if self._device.dimmable else ColorMode.ONOFF
+        self._device_subscription = None
 
     async def async_added_to_hass(self):
         """Run when entity about to be added to hass."""
         _LOGGER.debug("Added to hass %s", self._name)
-        # Listen for centralized xcomfort events
-        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
+        # Subscribe directly to device's state (RxPy)
+        def _on_device_state(new_state):
+            if new_state is not None and new_state != self._state:
+                self._state = new_state
+                _LOGGER.debug("State updated via RxPy subscription %s : %s", self._name, self._state)
+                self.async_write_ha_state()
+        self._device_subscription = self._device.state.subscribe(_on_device_state)
 
-    def _handle_event(self, event: Event):
-        """Handle centralized xcomfort_event and update state if relevant."""
-        event_data = event.data
-        if (event_data.get("device_id") == self.device_id and
-                event_data.get("device_type") == "Light"):
-            self._state = event_data.get("new_state")
-            _LOGGER.debug("State updated via event %s : %s", self._name, self._state)
-            self.schedule_update_ha_state()
+    async def async_will_remove_from_hass(self):
+        if self._device_subscription is not None:
+            self._device_subscription.dispose()
+            self._device_subscription = None
 
     def _get_state_value(self, key, default=None):
         """Helper method to get state values from either a dictionary or object."""
@@ -150,11 +149,11 @@ class HASSXComfortLight(LightEntity):
         else:
             await self._device.switch(True)
             self._state = {"switch": True}
-        self.schedule_update_ha_state()
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
         """Turn the light off."""
         _LOGGER.debug("async_turn_off %s : %s", self._name, kwargs)
         await self._device.switch(False)
         self._state = {"switch": False}
-        self.schedule_update_ha_state()
+        self.async_write_ha_state()

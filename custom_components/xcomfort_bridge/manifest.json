@@ -1,13 +1,13 @@
 {
   "domain": "xcomfort_bridge",
   "name": "Eaton xComfort Bridge",
-  "version": "0.3.8",
+  "version": "0.4.0",
   "config_flow": true,
   "integration_type": "hub",
-  "documentation": "https://github.com/oywino/oywin-ha-xcomfort-bridge",
-  "issue_tracker": "https://github.com/oywino/oywin-ha-xcomfort-bridge/issues",
+  "documentation": "https://github.com/oywino/ha-xcomfort-bridge",
+  "issue_tracker": "https://github.com/oywino/ha-xcomfort-bridge/issues",
   "requirements": [
-    "git+https://github.com/alexbrasetvik/xcomfort-python.git@develop#xcomfort==0.2.0a1",
+    "xcomfort @ git+https://github.com/oywino/xcomfort-python.git@experiment",
     "rx==3.2.0",
     "pycryptodome==3.21.0"
   ],
@@ -19,8 +19,7 @@
     "@alexbrasetvik",
     "@eliasdjup",
     "@jankrib",
-    "@javydekoning",
-    "@oywindo"
+    "@oywino"
   ],
   "dhcp": [
     {

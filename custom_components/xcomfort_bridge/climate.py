@@ -74,10 +74,8 @@ class HASSXComfortRcTouch(ClimateEntity):
         self.hub = hub
         self._room = room
         self._name = room.name
-        # Initialize state from room.state.value if available
-        self._state = room.state.value if room.state else None
+        self._state = None
 
-        # Default values
         self.rctpreset = RctMode.Comfort
         self.rctstate = RctState.Idle
         self.temperature = 20.0
@@ -85,64 +83,33 @@ class HASSXComfortRcTouch(ClimateEntity):
 
         self._unique_id = f"climate_{DOMAIN}_{hub.identifier}-{room.room_id}"
 
-        # Set initial values from state if available
-        if self._state is not None:
-            self._update_attributes_from_state(self._state)
-
-    def _update_attributes_from_state(self, state):
-        """Update internal attributes from the state.
-
-        Args:
-            state: The state object or dictionary
-
-        """
-        # Handle state as object or dictionary
-        if hasattr(state, "raw") and state.raw is not None:
-            raw = state.raw
-        else:
-            raw = state if isinstance(state, dict) else {}
-
-        # Update preset mode
-        if "currentMode" in raw:
-            self.rctpreset = RctMode(raw["currentMode"])
-        elif "mode" in raw:
-            self.rctpreset = RctMode(raw["mode"])
-
-        # Update temperature and setpoint
-        self.temperature = getattr(state, "temperature", self.temperature) if hasattr(state, "temperature") else raw.get("temperature", self.temperature)
-        self.currentsetpoint = getattr(state, "setpoint", self.currentsetpoint) if hasattr(state, "setpoint") else raw.get("setpoint", self.currentsetpoint)
-
-        _LOGGER.debug("Attributes updated for %s: preset=%s, temp=%s, setpoint=%s",
-                      self._name, self.rctpreset, self.temperature, self.currentsetpoint)
-
     async def async_added_to_hass(self):
         """Run when entity about to be added to hass."""
         _LOGGER.debug("Added to hass %s", self._name)
-        if self._state is None:
-            _LOGGER.debug("Initial state is null for %s", self._name)
-        
-        # Listen for centralized events
-        self.async_on_remove(
-            self.hass.bus.async_listen("xcomfort_event", self._handle_event)
-        )
+        if self._room.state is None:
+            _LOGGER.debug("State is null for %s", self._name)
+        else:
+            self._room.state.subscribe(lambda state: self._state_change(state))
 
-    async def _handle_event(self, event):
-        """Handle xcomfort_event events from the hub.
+    def _state_change(self, state):
+        """Handle state changes from the device.
 
         Args:
-            event: The event object
+            state: New state from the device
 
         """
-        data = event.data
-        if (data.get("device_type") == "Room" and 
-            data.get("device_id") == self._room.room_id and 
-            data.get("action") == "state_change"):
-            # Update state from event
-            self._state = data.get("new_state")
-            if self._state is not None:
-                self._update_attributes_from_state(self._state)
-                self.schedule_update_ha_state()
-            _LOGGER.debug("Event handled for %s: %s", self._name, data)
+        self._state = state
+
+        if self._state is not None:
+            if "currentMode" in state.raw:
+                self.rctpreset = RctMode(state.raw["currentMode"])
+            if "mode" in state.raw:
+                self.rctpreset = RctMode(state.raw["mode"])
+            self.temperature = state.temperature
+            self.currentsetpoint = state.setpoint
+
+            _LOGGER.debug("State changed %s : %s", self._name, state)
+            self.schedule_update_ha_state()
 
     async def async_set_preset_mode(self, preset_mode):
         """Set new preset mode.
@@ -155,14 +122,10 @@ class HASSXComfortRcTouch(ClimateEntity):
 
         if preset_mode == "Cool":
             mode = RctMode.Cool
-        elif preset_mode == PRESET_ECO:
+        if preset_mode == PRESET_ECO:
             mode = RctMode.Eco
-        elif preset_mode == PRESET_COMFORT:
+        if preset_mode == PRESET_COMFORT:
             mode = RctMode.Comfort
-        else:
-            _LOGGER.warning("Unsupported preset mode: %s", preset_mode)
-            return
-
         if self.rctpreset != mode:
             await self._room.set_mode(mode)
             self.rctpreset = mode
@@ -241,21 +204,12 @@ class HASSXComfortRcTouch(ClimateEntity):
     @property
     def current_humidity(self):
         """Return the current humidity."""
-        if self._state is None:
-            return None
-        if isinstance(self._state, dict):
-            humidity = self._state.get("humidity")
-        else:
-            humidity = getattr(self._state, "humidity", None)
-        return int(humidity) if humidity is not None else None
+        return int(self._state.humidity)
 
     @property
     def hvac_action(self):
         """Return the current running HVAC action."""
-        if self._state is None:
-            return HVACAction.IDLE
-        power = self._state.get("power", 0) if isinstance(self._state, dict) else getattr(self._state, "power", 0)
-        if power > 0:
+        if self._state.power > 0:
             return HVACAction.HEATING
         return HVACAction.IDLE
 

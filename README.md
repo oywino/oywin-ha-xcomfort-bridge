@@ -3,6 +3,7 @@
 Eaton xComfort integration with Home Assistant. Note that you need the **xComfort Bridge** for this to work.
 
 ## Changelog
+
 Added support for Eaton SmartStick outlets as 'switches' in Home Assistant
 
 ## Installation
@@ -16,7 +17,8 @@ From HACS
 5. Go to _Settings -> Devices & Services -> Add integration -> Eaton xComfort Bridge_
 
 ## Documentation
-- [Smartstikk Switch Enhancements](docs/switch.md)
+
+- [xComfort Bridge Enhancements](docs/docs_summary.md)
 
 ## Credits
 

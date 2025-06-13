@@ -1,4 +1,8 @@
-"""Support for xComfort Bridge cover shades."""
+# v2 corrected
+"""Support for xComfort Bridge cover shades.
+
+Version: 2024.05.18.1
+"""
 import logging
 
 from xcomfort.devices import Shade
@@ -10,7 +14,7 @@ from homeassistant.components.cover import (
     CoverEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -27,27 +31,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         
         devices = hub.devices
 
-        shades = []  # Changed from list()
+        shades = []
         for device in devices:
             if isinstance(device, Shade):
                 shade = HASSXComfortShade(hass, hub, device)
                 shades.append(shade)
 
-        _LOGGER.debug("Added %s shades", len(shades))  # Changed from f-string
         async_add_entities(shades)
 
 class HASSXComfortShade(CoverEntity):
     """Representation of an xComfort Bridge cover device."""
 
     def __init__(self, hass: HomeAssistant, hub: XComfortHub, device: Shade):
-        """Initialize the cover device.
-
-        Args:
-            hass: The Home Assistant instance
-            hub: The xComfort Bridge hub
-            device: The shade device
-
-        """
+        """Initialize the cover device."""
         self.hass = hass
         self.hub = hub
 
@@ -56,8 +52,9 @@ class HASSXComfortShade(CoverEntity):
         # Set initial state from device, if available
         self._state = device.state.value if device.state is not None else None
         self.device_id = device.device_id
-
         self._unique_id = f"shade_{DOMAIN}_{hub.identifier}-{device.device_id}"
+        self._device_subscription = None
+        self._event_subscription = None
 
     @property
     def device_class(self):
@@ -66,18 +63,34 @@ class HASSXComfortShade(CoverEntity):
 
     async def async_added_to_hass(self):
         """Run when entity about to be added to hass."""
-        _LOGGER.debug("Added to hass %s", self._name)  # Changed from f-string
-        # Listen for centralized xcomfort events
-        self.hass.bus.async_listen("xcomfort_event", self._handle_event)
+        def _on_device_state(new_state):
+            if new_state is not None:
+                self._state = new_state
+                self.async_write_ha_state()
+        self._device_subscription = self._device.state.subscribe(_on_device_state)
 
-    def _handle_event(self, event):
-        """Handle centralized xcomfort_event and update state if relevant."""
-        event_data = event.data
-        if (event_data.get("device_id") == self.device_id and
-                event_data.get("device_type") == "Shade"):
-            self._state = event_data.get("new_state")
-            _LOGGER.debug("State updated via event %s : %s", self._name, self._state)
-            self.schedule_update_ha_state()
+        # Subscribe to xcomfort_event for this device
+        @callback
+        def handle_xcomfort_event(event):
+            event_data = event.data
+            if (event_data.get("device_id") == self.device_id and 
+                event_data.get("device_type") == "Shade" and 
+                event_data.get("action") == "state_change"):
+                new_state = event_data.get("new_state")
+                if new_state and isinstance(new_state, dict):
+                    self._state = new_state
+                    self.async_write_ha_state()
+
+        self._event_subscription = self.hass.bus.async_listen("xcomfort_event", handle_xcomfort_event)
+
+    async def async_will_remove_from_hass(self):
+        """Run when entity is removed from hass."""
+        if self._device_subscription is not None:
+            self._device_subscription.dispose()
+            self._device_subscription = None
+        if self._event_subscription is not None:
+            self._event_subscription()
+            self._event_subscription = None
 
     @property
     def is_closed(self) -> bool | None:
@@ -137,6 +150,7 @@ class HASSXComfortShade(CoverEntity):
 
     def update(self):
         """Update the entity."""
+        pass
 
     @property
     def current_cover_position(self) -> int | None:
