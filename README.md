@@ -1,4 +1,5 @@
 # xcomfort-bridge-hass
+## Update to version 0.4.x from an earlier version requires full re-installation!
 
 Eaton xComfort integration with Home Assistant. Note that you need the **xComfort Bridge** for this to work.
 
